@@ -1,8 +1,13 @@
 import * as React from "react";
 import os from "node:os";
 import { cssBundleHref } from "@remix-run/css-bundle";
-import type { LinksFunction, MetaFunction } from "@remix-run/node";
+import type {
+    LinksFunction,
+    LoaderFunctionArgs,
+    MetaFunction,
+} from "@remix-run/node";
 import {
+    data,
     Link,
     Links,
     Meta,
@@ -11,6 +16,7 @@ import {
     ScrollRestoration,
     useLoaderData,
 } from "@remix-run/react";
+import { AuthenticityTokenProvider } from "remix-utils/csrf/react";
 
 import tailwindStylesheetUrl from "~/styles/tailwind.css?url";
 import faviconAssetUrl from "~/assets/favicon.svg?url";
@@ -18,6 +24,7 @@ import fontStylesUrl from "~/styles/font.css?url";
 import { GeneralErrorBoundary } from "./components/error-boundary";
 import { honeypot } from "./utils/honeypot.server";
 import { HoneypotProvider } from "remix-utils/honeypot/react";
+import { csrf } from "./utils/csrf.server";
 
 // import "~/styles/global.css"
 
@@ -49,78 +56,92 @@ export const meta: MetaFunction = () => {
     ];
 };
 
-export const loader = () => {
-    const honeyProps = honeypot.getInputProps()
-    const data = { username: os.userInfo().username, honeyProps };
-    return data;
-};
+export async function loader({ request }: LoaderFunctionArgs) {
+    const honeyProps = honeypot.getInputProps();
+    const [csrfToken, csrfCookieHeader] = await csrf.commitToken(
+        request
+    );
+    return data(
+        { username: os.userInfo().username, honeyProps, csrfToken },
+        {
+            headers: csrfCookieHeader
+                ? { "set-cookie": csrfCookieHeader }
+                : {},
+        }
+    );
+}
 
 function Document({ children }: { children: React.ReactNode }) {
-	return (
-		<html lang="en" className="h-full overflow-x-hidden">
-			<head>
-				<Meta />
-				<meta charSet="utf-8" />
-				<meta name="viewport" content="width=device-width,initial-scale=1" />
-				<Links />
-			</head>
-			<body className="flex h-full flex-col justify-between bg-background text-foreground">
-				{children}
-				<ScrollRestoration />
-				<Scripts />
-			</body>
-		</html>
-	)
+    return (
+        <html lang="en" className="h-full overflow-x-hidden">
+            <head>
+                <Meta />
+                <meta charSet="utf-8" />
+                <meta
+                    name="viewport"
+                    content="width=device-width,initial-scale=1"
+                />
+                <Links />
+            </head>
+            <body className="flex h-full flex-col justify-between bg-background text-foreground">
+                {children}
+                <ScrollRestoration />
+                <Scripts />
+            </body>
+        </html>
+    );
 }
 
 function App() {
-	// throw new Error('🐨 root component error')
-	const data = useLoaderData<typeof loader>()
-	return (
-		<Document>
-			<header className="container mx-auto py-6">
-				<nav className="flex justify-between">
-					<Link to="/">
-						<div className="font-light">epic</div>
-						<div className="font-bold">notes</div>
-					</Link>
-					<Link className="underline" to="users/kody">
-						Kody
-					</Link>
-				</nav>
-			</header>
+    // throw new Error('🐨 root component error')
+    const data = useLoaderData<typeof loader>();
+    return (
+        <Document>
+            <header className="container mx-auto py-6">
+                <nav className="flex justify-between">
+                    <Link to="/">
+                        <div className="font-light">epic</div>
+                        <div className="font-bold">notes</div>
+                    </Link>
+                    <Link className="underline" to="users/kody">
+                        Kody
+                    </Link>
+                </nav>
+            </header>
 
-			<div className="flex-1">
-				<Outlet />
-			</div>
+            <div className="flex-1">
+                <Outlet />
+            </div>
 
-			<div className="container mx-auto flex justify-between">
-				<Link to="/">
-					<div className="font-light">epic</div>
-					<div className="font-bold">notes</div>
-				</Link>
-				<p>Built with ♥️ by {data.username}</p>
-			</div>
-			<div className="h-5" />
-		</Document>
-	)
+            <div className="container mx-auto flex justify-between">
+                <Link to="/">
+                    <div className="font-light">epic</div>
+                    <div className="font-bold">notes</div>
+                </Link>
+                <p>Built with ♥️ by {data.username}</p>
+            </div>
+            <div className="h-5" />
+        </Document>
+    );
 }
 
 export default function AppWithProviders() {
-	const data = useLoaderData<typeof loader>()
-	return (
-		<HoneypotProvider {...data.honeyProps}>
-			<App />
-		</HoneypotProvider>
-	)
+    const data = useLoaderData<typeof loader>();
+    return (
+			<AuthenticityTokenProvider token={data.csrfToken}>
+        <HoneypotProvider {...data.honeyProps}>
+            <App />
+        </HoneypotProvider>
+			</AuthenticityTokenProvider>
+    );
 }
 
 export function ErrorBoundary() {
-	return (
-		<Document>
-			<div className="flex-1">
-				<GeneralErrorBoundary />
-			</div>
-		</Document>
-	)
+    return (
+        <Document>
+            <div className="flex-1">
+                <GeneralErrorBoundary />
+            </div>
+        </Document>
+    );
 }
