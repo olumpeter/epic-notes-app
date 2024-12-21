@@ -11,10 +11,13 @@ import {
     ScrollRestoration,
     useLoaderData,
 } from "@remix-run/react";
+
 import tailwindStylesheetUrl from "~/styles/tailwind.css?url";
 import faviconAssetUrl from "~/assets/favicon.svg?url";
 import fontStylesUrl from "~/styles/font.css?url";
 import { GeneralErrorBoundary } from "./components/error-boundary";
+import { honeypot } from "./utils/honeypot.server";
+import { HoneypotProvider } from "remix-utils/honeypot/react";
 
 // import "~/styles/global.css"
 
@@ -47,8 +50,8 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader = () => {
-    // throw new Error("🐨 root loader error");
-    const data = { username: os.userInfo().username };
+    const honeyProps = honeypot.getInputProps()
+    const data = { username: os.userInfo().username, honeyProps };
     return data;
 };
 
@@ -70,7 +73,7 @@ function Document({ children }: { children: React.ReactNode }) {
 	)
 }
 
-export default function App() {
+function App() {
 	// throw new Error('🐨 root component error')
 	const data = useLoaderData<typeof loader>()
 	return (
@@ -100,6 +103,15 @@ export default function App() {
 			</div>
 			<div className="h-5" />
 		</Document>
+	)
+}
+
+export default function AppWithProviders() {
+	const data = useLoaderData<typeof loader>()
+	return (
+		<HoneypotProvider {...data.honeyProps}>
+			<App />
+		</HoneypotProvider>
 	)
 }
 

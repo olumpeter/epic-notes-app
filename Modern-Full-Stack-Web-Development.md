@@ -3659,11 +3659,215 @@ And we want that hooked up to our form. That should be enough to get you going!
 - [📜 Zod Type Inference](https://zod.dev/?id=type-inference)
 - [📜 React ref](https://react.dev/reference/react/useRef)
 
+### Summary
+
+👨‍💼 Great! Even though forms don't technically support nested objects (again, nested forms aren't allowed), Conform allows us to simulate that. This makes it much easier for us to maintain a sensible data structure for our forms.
+
+But did you notice that our database allows notes to have more than a single image? Sure would be nice if we could add more than one image to a note, right? Let's do that next!
+
+💯 Now that our form is wired up with conform, we can render the errors for these fields. Feel free to try that if you've got extra time (🧝‍♂️ Kellie will do it for you if you don't).
+
 ### 2.5.2 Field Lists
 
 ### 2.5.3 Add / Remove Items
 
 ## 2.6 Honeypot
+
+Modern web applications are often bombarded with automated spam bots that try to submit forms with irrelevant or harmful content. There are a number of reasons they do this:
+
+- To post their links to your site, hoping to increase their search engine ranking
+- To test your site for vulnerabilities
+- To help distribute malware
+
+This not only degrades the user experience but can also strain server resources and contaminate databases with unwanted data.
+
+On my own site I found that spam bots were submitting my login and contact forms which resulted in sending emails to myself and random people which was really annoying and affected my deliverability. The nice thing is that it's pretty cost prohibitive for people to make sophisticated spam bots, so a few simple tricks can help you avoid most of the spam. To defend against these bots, you can use a common strategy known as a honeypot field.
+
+A honeypot field is a form input that's designed to be invisible to genuine human users but enticing to bots. The concept behind it is simple: since bots will often fill out every available field in a form, we can trick them by adding a field that human users can't see (and therefore won't fill out). If any submissions contain data in that hidden field, it's a strong indicator that the submission is from a bot, allowing us to discard or flag the submission accordingly.
+
+Another useful thing you can do along with the honeypot field is to add a field that will allow you to determine when the form was generated. So if the form is submitted too quickly, you can be pretty confident that it's a bot. This is more tricky than it sounds because bots could easily change the value of that field, so you do need to encrypt the value. But if you manage that, it's a great way to catch bots.
+
+To implement a honeypot field, you'd typically add an input field to your form and then hide it using CSS. It's crucial that this field is hidden in a way that humans can't use, but a bot will. It's also a good idea to give the honeypot field a name that sounds enticing to bots, like "url" or "email", which can make it even more likely they'll fill it in. The trick is making sure the field doesn't conflict with any other fields in your form. So you can sometimes append __confirm or something similar to the field to keep it unique and the bot will still fill it in.
+
+For example:
+
+```tsx
+<form>
+	<label>
+		Name:
+		<input type="text" name="name" />
+	</label>
+	<label>
+		Email:
+		<input type="email" name="email" />
+	</label>
+	<label>
+		Website:
+		<input type="text" name="url" />
+	</label>
+	<label>
+		Message:
+		<textarea name="message"></textarea>
+	</label>
+	<div style="display: none;">
+		<label>
+			Do not fill out this field
+			<input type="text" name="name__confirm" />
+		</label>
+	</div>
+	<button type="submit">Send</button>
+</form>
+```
+
+When the form is submitted, you can then check the honeypot field on the server-side. If it has a value, it's a strong sign that the submission is automated and can be safely ignored or flagged.
+
+Honeypot fields offer a non-intrusive and user-friendly approach to combating spam. Unlike CAPTCHAs, which can sometimes frustrate genuine users, honeypots operate silently in the background. However, it's worth noting that no solution is foolproof. As bots become more sophisticated, they might learn to avoid honeypots. Additionally, if you're targeted by a specific group then they'll be able to code their bot specific to your protections.
+
+So the idea of a honeypot field is just to keep yourself out of the "low hanging fruit" category.
+
+As an example, on my website, I have honeypot fields implemented on my public fields and I log out when honeypot fields are filled in. Here's some logs I saw just today (as I write this):
+
+```tsx
+FAILED HONEYPOT {
+	formId: 'newsletter',
+	firstName: '**********',
+	email: '***********@gmail.com',
+	convertKitTagId: '',
+	convertKitFormId: '827139',
+	url: 'Too MUCH'
+}
+POST kentcdodds.com/action/convert-kit 200 - 41.616 ms
+FAILED HONEYPOT ON LOGIN {
+	email: '***********@gmail.com',
+	password: '***********'
+}
+POST kentcdodds.com/login 200 - 34.213 ms
+```
+
+I'm using `url` for the honeypot field of the first form and `password` as the honeypot field for the second form (my site's login is passwordless). I've saved myself actual money (and improved my email deliverability) because of this feature so it's definitely one you'll want to implement for all your publicly facing forms.
+
+Remember, it's always a cat and mouse game between spammers and developers. As one side innovates, so does the other. Stay updated, and be ready to iterate on your solutions as the digital landscape evolves.
+
+#### Remix Utils
+
+This is why using a library that can be continuously updated is a great approach. [`remix-utils`](https://npm.im/remix-utils) has a great solution to this problem which we'll be using in this exercise.
+
+```tsx
+// create the honeypot instance:
+const honeypot = new Honeypot()
+
+// get the props for our fields:
+const honeyProps = honeypot.getInputProps()
+
+// pass those to the React provider
+<HoneypotProvider {...honeyProps}>
+	<App />
+</HoneypotProvider>
+
+// render the fields within our form
+<HoneypotInputs />
+
+// check the honeypot field on the server
+honeypot.check(formData)
+```
+
+- 📜 [remix-utils Honeypot](https://github.com/sergiodxa/remix-utils#form-honeypot)
+
+### 2.6.1 Basic Honeypot
+
+👨‍💼 When users sign up for an account on our app, we send a confirmation email. If spam bots submit random people's email addresses in there, we'll get marked as spam and our deliverability will be poor (emails we send won't get to where they're supposed to go).
+
+Kellie 🧝‍♂️ put together a new route which accepts the user's email address. We need you to add a honeypot field to the form so we can detect bots and not send emails if that field is filled out.
+
+You just need to make sure that regular users don't accidentally fill the field out. It can be pretty basic, because many bots aren't very sophisticated. But we'll improve it later to deal with more sophisticated bots in the future.
+
+The form only actually redirects to `/` for right now. If the honeypot field is filled in then the action should return a 400 error response (you can use `invariantResponse` for this if you like).
+
+#### Conclusion
+
+👨‍💼 Great job! Your honeypot is awesome, but Kellie 🧝‍♂️ just found a library that will do this for us, so we're going to use that library instead. Sorry about that 😅
+
+### 2.6.2 Remix Utils
+
+👨‍💼 We're going to use [`remix-utils`](https://npm.im/remix-utils) to put together the honeypot in the UI and check it in our `action`. This is going to require a bit of setup because it can do more than just handle the single field for us.
+
+First you're going to need to create `app/utils/honeypot.server.ts` to create a honeypot instance. For example:
+
+```tsx
+import { Honeypot } from 'remix-utils/honeypot/server'
+
+export const honeypot = new Honeypot({
+	validFromFieldName: 'validFrom',
+	encryptionSeed: process.env.HONEY_POT_ENCRYPTION_SEED,
+	nameFieldName: 'name',
+	randomizeNameFieldName: true,
+})
+```
+
+We don't need all those options just yet though. In fact, for this first bit, we just want to set `validFromFieldName` to `null` for now. We'll get to the rest of the options later.
+
+Once you have that set up, you can use it in the `action` of `app/routes/_auth+/signup.tsx`. For example:
+
+```tsx
+try {
+	honeypot.check(formData)
+} catch (error) {
+	if (error instanceof SpamError) {
+		throw new Response('Form not submitted properly', { status: 400 })
+	}
+	throw error
+}
+```
+
+The `SpamError` comes from `remix-utils/honeypot/server`.
+
+And then for the UI, you can replace our custom `input` stuff with `<HoneypotInputs />` from `remix-utils/honeypot/react`.
+
+Good luck!
+
+#### Conclusion
+
+👨‍💼 Great! That's better. It's nice to use a library for stuff like this because it means that as spam bots get more sophisticated, the library can be steadily improved and we can just update our code to use the new version.
+
+🧝‍♂️ I'm going to update a bit to make the next thing you're going to do a bit easier. It's easier to just show you the diff than explain it. So you can check it out here.
+
+### 2.6.3 Honeypot Provider
+
+👨‍💼 If a user is able to submit the form within a second of the form being generated, they're probably not a human (or maybe they're just [Barry Allen](https://en.wikipedia.org/wiki/List_of_The_Flash_characters#Barry_Allen_/_Flash) ⚡). So as a part of our honeypot, we can have another hidden field that keeps track of when the form was generated. Then when the form is submitted, we just make sure it was submitted at least a second after it was generated.
+
+There are a few problems with this we'll need to consider. For example, if we're running automated tests, then our user actually is a bot and that's okay 😅 So when we're running tests, we don't want to include the valid from field.
+
+We'll know whether we're in a testing environment if `process.env.TESTING` is set. (That's set in ). If that's set, then just set the `validFromFieldName` to `null` and that will prevent remix-utils from including and checking for that field. Otherwise, you can set it to a string, or just use `undefined` to have the default value be used. If you'd like to test out your work, you can comment out the `process.env.TESTING = 'true'` line in the file and restart the server.
+
+Another challenge will be is synchronizing our UI with our server config for the honeypot fields. So we need to update to handle this.
+
+There are other issues, but let's just start with this.
+
+#### Conclusion
+
+👨‍💼 Great! Now we're probably going to catch even more bots! But we've got another problem we'll want to deal with next.
+
+🧝‍♂️ Before you get to that though, I'm going to make a small change. We're going to apply this honeypot stuff to all our public forms, so to reduce repetition, I'm going to move some of the boilerplate from the action in to a utility called checkHoneypot in `app/utils/honeypot.server.ts`.
+
+Feel free to check the diff or even do it yourself if you like.
+
+### 2.6.4 Encryption Seed
+
+👨‍💼 So, you may not have noticed this, but `remix-utils` doesn't actually put the real date the form was generated in the `validFrom` input of the form. It's just some random string of characters. Well, it's not really random, it's actually encrypted. The reason for this is because we don't want bots to be able to just change the date on the form and then submit it quickly. So `remix-utils` will encrypt the actual valid date and that's what the form is set to.
+
+To be able to decrypt the value, we need an encryption key. `remix-utils` will generate one for us if we don't set one ourselves. Unfortunately, there's a problem with doing things this way. The key is generated at startup time, so if you restart your server, or you're running multiple instances of your app, a form could be generated with one key and validated with another.
+
+So instead, we can set it to something consistent across all instances of our app. We can do this by setting the `encryptionSeed` option in our config. The tricky bit is we need this to be secret, so we're not going to just commit this to the repository. We need this to be kept secret. So we'll use environment variables.
+
+So we're going to place it in our` .gitignore`d `.env` file which we're loading at startup time during development, and then you'll want to make sure to set this environment variable in your production environment as well ([for example](https://fly.io/docs/reference/secrets/)).
+
+🐨 So first, you'll set the variable in `.env`, then go `app/utils/env.server.ts` to to validate at startup time that the variable is set (and get type safety on it as well).
+
+🐨 Once you've got that, you can set the `encryptionSeed` in the honeypot config.
+
+#### Conclusion
+
+👨‍💼 Awesome! Now we're able to handle the massive network of bots randomly submitting forms all over the internet. Again, this won't really help with a targeted attack (we'll do more with that later). This definitely helps a lot with general abuse though, so great work!
 
 ## 2.7 Cross-Site Request Forgery
 
