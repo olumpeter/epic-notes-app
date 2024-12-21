@@ -4005,3 +4005,110 @@ In any case, I feel so much more secure now. Thank you!
 🧝‍♂️ I'm going to make a `validateCSRF` utility out of that work you just did because we're going to want to do this all over the place for all our forms. Feel free to do this yourself if you want the practice. I'm also going to apply this to all the forms in the app too. As usual, you can do that yourself if you'd like the extra practice. But I don't mind doing it for you. Either way, you can check the diff. Cheers!
 
 ## 2.8 Rate Limiting
+
+Imagine this: you've just released an amazing new feature on your web application, and you're excited for users to try it out. But then, suddenly, your server crashes due to a flood of requests. This could be a result of malicious intent, or just too many eager users. Either way, you're in trouble. This is where rate limiting comes in.
+
+Rate limiting helps to control the flow of incoming requests, ensuring that our server isn't overwhelmed. It does this by limiting the number of requests a user can make in a specific window of time. In the context of a web application, especially one that uses forms, rate limiting can be crucial.
+
+Of course we want all genuine users to be able to use our application which is why you should be cognizant of your scaling needs, but no real user in the world needs to submit your signup form more than 10 times in a minute.
+
+Now, why might we have different rate limits for `GET` vs `POST` requests?
+
+`GET` requests are typically **read** operations. These requests might be someone viewing a user's profile or reading a blog post. While it's important to rate limit these, they often are less resource-intensive than `POST` requests. And genuine users typically make many more of these types of requests than `POST` requests.
+
+`POST` requests are write operations. They might involve signing up for an account, posting a comment, or submitting some form data. These requests often require more from our server - data validation, database writes, sending emails, etc. Additionally, a user trying to guess a password might make many `POST` requests in a short period of time.
+
+Let's look at a scenario: the `/signup` endpoint. Signing up typically involves various operations like hashing passwords, database writes, and possibly sending a welcome email. It's unlikely a user will need to do this many times a minute. So, we'd use an even stricter rate limit on `POST` requests to `/signup`.
+
+We're using express for our server and there's a great tool called `express-rate-limit` that makes it easy to add support for rate limiting to our application:
+
+```tsx
+import rateLimit from 'express-rate-limit'
+
+// When we're testing, we don't want rate limiting to get in our way. So, we'll
+// increase our rate limit thresholds.
+const limitMultiple = process.env.TESTING ? 10_000 : 1
+
+const rateLimitDefault = {
+	windowMs: 60 * 1000, // 1 minute
+	limit: 1000 * limitMultiple, // Adjust the limit based on our environment
+	standardHeaders: true, // Send standard headers with limit information
+	legacyHeaders: false, // Don't bother sending legacy headers
+}
+
+// The most strict rate limit, great for routes like /signup
+const strongestRateLimit = rateLimit({
+	...rateLimitDefault,
+	limit: 10 * limitMultiple,
+})
+
+// A stricter rate limit for general POST requests
+const strongRateLimit = rateLimit({
+	...rateLimitDefault,
+	limit: 100 * limitMultiple,
+})
+
+// A general rate limit for our application
+const generalRateLimit = rateLimit(rateLimitDefault)
+
+app.use((req, res, next) => {
+	const strongPaths = ['/signup']
+	if (req.method !== 'GET' && req.method !== 'HEAD') {
+		if (strongPaths.some(p => req.path.includes(p))) {
+			return strongestRateLimit(req, res, next)
+		}
+		return strongRateLimit(req, res, next)
+	}
+
+	return generalRateLimit(req, res, next)
+})
+```
+
+Lastly, as you can see, we're taking into account our environment when configuring our rate limits. In our tests (which may execute very fast), we'd effectively disable rate limiting by boosting our limit thresholds. This ensures our tests don't fail simply because they're making requests too quickly.
+
+### 2.8.1 Basic Rate Limiting
+
+👨‍💼 Let's get started with some basic rate limiting using express-rate-limit. Here's a quick primer on its API:
+
+```tsx
+import { rateLimit } from 'express-rate-limit'
+
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+	standardHeaders: true, // Use standard draft-6 headers of `RateLimit-Policy` `RateLimit-Limit`, and `RateLimit-Remaining`
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+	// store: ... , // Use an external store for more precise rate limiting
+})
+
+// Apply the rate limiting middleware to all requests
+app.use(limiter)
+```
+
+For our app, we're ok not using an external store to manage the rate limiting, but that's something you may consider looking into depending on your scale.
+
+So let's open up and get some basic middleware for this set up.
+
+Oh, and you're going to want to think about our testing environment... We want to keep the middleware in play, but we just want to increase the limits to account for the fact that a robot is actually submitting things faster than humans will be expected to 😅
+
+- 📜 [`express-rate-limit`](https://www.npmjs.com/package/express-rate-limit)
+
+#### Conclusion
+
+The `max` property was renamed to `limit` in express-rate-limit. Your exercise code has been updated, but you'll notice the video still uses `max`. 👨‍💼 That's a great start! Let's keep going.
+
+### 2.8.2 Tuned Rate Limiting
+
+👨‍💼 As a general rule, our rate limiter is ok, but for higher impact pages and forms, we probably want to tighten things up a bit. For example, it wouldn't make sense for a user to submit our `/signup` for a thousand times in a minute. Maybe more like 10 times in a minute max (maybe they're just _really_ bad at entering their proper email address).
+
+But then for some other forms it may be ok to submit 100 times in a minute (maybe they've got a _lot_ of notes they want to delete in a row). So we're going to have three tiers. General, strong, and strongest.
+
+So let's give that a whirl.
+
+#### Conclusion
+
+The `max` property was renamed to `limit` in express-rate-limit. Your exercise code has been updated, but you'll notice the video still uses `max`.
+
+👨‍💼 Great job! Now we're pretty well protected against brute force attacks on our app. We can further tune this rate limiting as needed in the future.
+
+Well done 👏👏

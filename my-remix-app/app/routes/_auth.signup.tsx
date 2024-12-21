@@ -9,6 +9,7 @@ import { HoneypotInputs } from "remix-utils/honeypot/react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { validateCSRF } from "~/utils/csrf.server";
 import { checkHoneypot } from "~/utils/honeypot.server";
 
 export const meta: MetaFunction = () => {
@@ -17,6 +18,7 @@ export const meta: MetaFunction = () => {
 
 export async function action({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
+    await validateCSRF(formData, request.headers)
     checkHoneypot(formData)
     // we'll implement signup later
     return redirect("/");

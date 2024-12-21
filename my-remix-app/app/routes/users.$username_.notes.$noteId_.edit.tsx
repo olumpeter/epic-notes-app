@@ -30,6 +30,7 @@ import { floatingToolbarClassName } from "~/components/floating-toolbar";
 import { Button } from "~/components/ui/button";
 import { StatusButton } from "~/components/ui/status-button";
 import { GeneralErrorBoundary } from "~/components/error-boundary";
+import { validateCSRF } from "~/utils/csrf.server";
 
 export async function loader({ params }: LoaderFunctionArgs) {
     const note = db.note.findFirst({
@@ -81,6 +82,7 @@ export async function action({
             maxPartSize: MAX_UPLOAD_SIZE, // 3 MB
         })
     );
+    await validateCSRF(formData, request.headers)
 
     const submission = parseWithZod(formData, {
         schema: NoteEditorSchema,

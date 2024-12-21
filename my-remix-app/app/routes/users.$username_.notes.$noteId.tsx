@@ -12,7 +12,7 @@ import { floatingToolbarClassName } from "~/components/floating-toolbar";
 import { Button } from "~/components/ui/button";
 import { invariantResponse } from "~/utils/misc";
 import { GeneralErrorBoundary } from "~/components/error-boundary";
-import { csrf } from "~/utils/csrf.server";
+import { csrf, validateCSRF } from "~/utils/csrf.server";
 import { CSRFError } from "remix-utils/csrf/server";
 import { AuthenticityTokenInput } from "remix-utils/csrf/react";
 
@@ -73,14 +73,7 @@ export async function action({
     invariantResponse(params.noteId, "noteId param is required")
 
     const formData = await request.formData();
-    try {
-        await csrf.validate(formData, request.headers)
-    } catch (error) {
-        if (error instanceof CSRFError) {
-            throw new Response("Invalid CSRF token", {status: 403})
-        }
-        throw error
-    }
+    await validateCSRF(formData, request.headers)
     const intent = formData.get("intent");
 
     invariantResponse(intent === "delete", "Invalid intent", {
