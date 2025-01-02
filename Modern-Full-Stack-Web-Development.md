@@ -1,5 +1,4 @@
-Modern Full-Stack Web Development
-=================================
+# Modern Full-Stack Web Development
 
 # 1. 🔭 Full Stack Foundations
 
@@ -74,7 +73,7 @@ In Remix, you add links to the page by exporting a links function:
 
 ```tsx
 // ...
-import type { LinksFunction } from "@remix-run/node";
+import type { LinksFunction } from "@remix-run/node"
 
 export const links: LinksFunction = () => {
     return [
@@ -83,8 +82,8 @@ export const links: LinksFunction = () => {
             // all files in the public directory are served at the root of the site
             href: "/my-stylesheet.css",
         },
-    ];
-};
+    ]
+}
 
 //...
 ```
@@ -93,7 +92,7 @@ It's important for you to know that Remix puts all the responsibility of what ap
 
 ```tsx
 // ...
-import { Links } from "@remix-run/react";
+import { Links } from "@remix-run/react"
 
 // ...
 
@@ -105,7 +104,7 @@ export default function App() {
             </head>
             {/* ... */}
         </html>
-    );
+    )
 }
 ```
 
@@ -137,7 +136,7 @@ Let's do this. 🐨 So first you'll need to move the `favicon.svg` from to .
 Then, in , we can import it like this:
 
 ```tsx
-import faviconAssetUrl from "./assets/favicon.svg";
+import faviconAssetUrl from "./assets/favicon.svg"
 ```
 
 SVG favicons are not currently supported in Safari. See [caniuse](https://caniuse.com/link-icon-svg) for browser support.
@@ -181,7 +180,7 @@ export default {
         tailwindcss: {},
         autoprefixer: {},
     },
-};
+}
 ```
 
 🐨 Next, Click here to create the `tailwind.config.ts` file.
@@ -189,8 +188,8 @@ export default {
 And stick this config in there:
 
 ```tsx
-import { type Config } from "tailwindcss";
-import defaultTheme from "tailwindcss/defaultTheme.js";
+import { type Config } from "tailwindcss"
+import defaultTheme from "tailwindcss/defaultTheme.js"
 
 export default {
     content: ["./app/**/*.{ts,tsx,jsx,js}"],
@@ -205,7 +204,7 @@ export default {
             },
         },
     },
-} satisfies Config;
+} satisfies Config
 ```
 
 This is where we configure [Tailwind](https://tailwindcss.com/), a CSS framework that we'll be using to style our app. Our PostCSS configuration includes the Tailwind plugin so we can use the Tailwind directives in our css files to get the Tailwind stylesheet on the page. 📜 You can read more about configuring Tailwind with PostCSS in [the Tailwind docs](https://tailwindcss.com/docs/using-with-preprocessors).
@@ -234,8 +233,8 @@ Finally, to test that this worked, you can style the "Hello World" to have a Tai
 So, Remix allows you to import CSS files that are bundled automatically. It's pretty simple:
 
 ```tsx
-import stylesheetUrl from "./styles1.css?url"; // <-- you use the URL in the links export
-import "./styles2.css"; // <-- this will be bundled
+import stylesheetUrl from "./styles1.css?url" // <-- you use the URL in the links export
+import "./styles2.css" // <-- this will be bundled
 ```
 
 So, if you just import the CSS file without an "import clause" (the `stylesheetUrl` variable in the example above), it will be bundled for you.
@@ -243,9 +242,9 @@ So, if you just import the CSS file without an "import clause" (the `stylesheetU
 However, we are still responsible for everything on the page between the <html> and the </html> tags, so if we want the bundled CSS file on the page then we need to make sure we add it to the links. Remix gives us access to that URL through a special package called `@remix-run/css-bundle`:
 
 ```tsx
-import "./styles2.css";
-import "./styles3.css";
-import { cssBundleHref } from "@remix-run/css-bundle";
+import "./styles2.css"
+import "./styles3.css"
+import { cssBundleHref } from "@remix-run/css-bundle"
 ```
 
 The contents of `styles2.css` and `styles3.css` will appear within the file that is referenced by `cssBundleHref`. So, we can add that to our `links` export.
@@ -527,7 +526,7 @@ export default function KodyProfileRoute() {
         <div className="container mb-48 mt-36 border-4 border-green-500">
             <h1 className="text-h1">Kody</h1>
         </div>
-    );
+    )
 }
 ```
 
@@ -547,7 +546,7 @@ export default function NotesRoute() {
         <div className="flex h-full justify-between pb-12 border-8 border-blue-500">
             <h1 className="text-h1">Notes</h1>
         </div>
-    );
+    )
 }
 ```
 
@@ -566,7 +565,7 @@ export default function SomeNoteId() {
         <div className="container pt-12 border-8 border-red-500">
             <h2 className="text-h2">Some Note</h2>
         </div>
-    );
+    )
 }
 ```
 
@@ -605,13 +604,13 @@ export default function Parent() {
             <h1>Parent</h1>
             <Outlet />
         </div>
-    );
+    )
 }
 ```
 
 ```tsx
 export default function Child() {
-    return <h2>Child</h2>;
+    return <h2>Child</h2>
 }
 ```
 
@@ -632,7 +631,7 @@ export default function NotesIndexRoute() {
         <div className="container pt-12 border-8 border-purple-500">
             <p className="text-body-md">Select a note</p>
         </div>
-    );
+    )
 }
 ```
 
@@ -726,11 +725,11 @@ With the file-based route convention we're using, we define params by using a `$
 💰 You can get the param value from `useParams()` which you can import from `@remix-run/react`. For example:
 
 ```tsx
-import { useParams } from "@remix-run/react";
+import { useParams } from "@remix-run/react"
 
 export default function PetRoute() {
-    const params = useParams();
-    return <h1>Hello {params.petName}</h1>;
+    const params = useParams()
+    return <h1>Hello {params.petName}</h1>
 }
 ```
 
@@ -781,7 +780,7 @@ If you need the extra help, here's what the loader code should look like:
 
 ```ts
 export async function loader() {
-    return new Response("OK");
+    return new Response("OK")
 }
 ```
 
@@ -836,54 +835,54 @@ Remix has built-in support for loading data for both the initial page load (the 
 The data loading is a part of the route module in Remix. Each route module in the `app/routes` directory can export an async function called a [`loader`](https://remix.run/docs/en/1.14.3/route/loader). This function is run only on the server and therefore has access to your database, APIs, private environment variables, etc. It receives the `Request` object and `params` object and should return a `Response` object. For example:
 
 ```tsx
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs } from "@remix-run/node"
 
 export async function loader({
     request,
     params,
 }: LoaderFunctionArgs) {
-    const dataString = JSON.stringify({ hello: "world" });
+    const dataString = JSON.stringify({ hello: "world" })
     return new Response(dataString, {
         headers: { "content-type": "application/json" },
-    });
+    })
 }
 ```
 
 Because the most common use case for loaders is returning JSON data, Remix also exports a utility called `json` which allows you to more easily create a JSON object:
 
 ```tsx
-import type { LoaderFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
+import type { LoaderFunctionArgs } from "@remix-run/node"
+import { json } from "@remix-run/node"
 
 export async function loader({
     request,
     params,
 }: LoaderFunctionArgs) {
-    return json({ hello: "world" });
+    return json({ hello: "world" })
 }
 ```
 
 Then the UI code can use the [`useLoaderData`](https://remix.run/docs/en/1.14.3/hooks/use-loader-data) hook from `@remix-run/react` which will return the data from the `loader` function.
 
 ```tsx
-import type { LoaderFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import type { LoaderFunctionArgs } from "@remix-run/node"
+import { json } from "@remix-run/node"
+import { useLoaderData } from "@remix-run/react"
 
 export async function loader({
     request,
     params,
 }: LoaderFunctionArgs) {
-    return json({ hello: "world" });
+    return json({ hello: "world" })
 }
 
 export default function MyRoute() {
-    const data = useLoaderData<typeof loader>();
+    const data = useLoaderData<typeof loader>()
     return (
         <div>
             <h1>{data.hello}</h1>
         </div>
-    );
+    )
 }
 ```
 
@@ -921,13 +920,13 @@ We need to handle this case. That should be a 404 error. So after trying to get 
 export async function loader({ params }) {
     const sandwich = await db.sandwich.findFirst({
         where: { id: params.id },
-    });
+    })
 
     if (!sandwich) {
-        throw new Response("Sandwich not found", { status: 404 });
+        throw new Response("Sandwich not found", { status: 404 })
     }
 
-    return json({ sandwich });
+    return json({ sandwich })
 }
 ```
 
@@ -940,7 +939,7 @@ function assertDefined<Value>(
     value: Value | null | undefined
 ): asserts value is Value {
     if (value === undefined || value === null) {
-        throw new Response("Not found", { status: 404 });
+        throw new Response("Not found", { status: 404 })
     }
 }
 ```
@@ -949,11 +948,11 @@ function assertDefined<Value>(
 export async function loader({ params }) {
     const sandwich = await db.sandwich.findFirst({
         where: { id: params.id },
-    });
+    })
 
-    assertDefined(sandwich);
+    assertDefined(sandwich)
 
-    return json({ sandwich });
+    return json({ sandwich })
 }
 ```
 
@@ -993,8 +992,8 @@ Even though `GET` and `POST` are not the only methods available in HTTP, they ar
 When the method is POST the form body is submitted as a "payload" instead of a query string. The browser will encode it as `application/x-www-form-urlencoded`. On the server side, you can use [the Request's formData method](https://developer.mozilla.org/en-US/docs/Web/API/Request/formData) to get the form data as a `FormData` object:
 
 ```tsx
-const formData = await request.formData();
-const sandwichType = formData.get("sandwichType");
+const formData = await request.formData()
+const sandwichType = formData.get("sandwichType")
 ```
 
 You can also change the encoding type of the form by setting the `enctype` attribute. The only typical value for this attribute is `multipart/form-data`, which is used for file uploads.
@@ -1038,23 +1037,23 @@ The API for mutations in your UI code is just like a regular `<form>`, except yo
 Because Remix is a full-stack application framework, it also has a server-side API for handling the form's submission. It looks very similar to the `loader` API. In your route module, you export an [async `action` function](https://remix.run/docs/en/main/route/action) and receive the `request` and `params`, and you're expected to return a `Response` (remember, if the form submission is successful, you should return a redirect):
 
 ```tsx
-import { Form } from "@remix-run/react";
+import { Form } from "@remix-run/react"
 import type {
     ActionFunctionArgs,
     LoaderFunctionArgs,
     redirect,
-} from "@remix-run/node";
+} from "@remix-run/node"
 
 export async function action({
     request,
     params,
 }: ActionFunctionArgs) {
-    const formData = await request.formData();
-    const sandwichType = formData.get("sandwichType");
+    const formData = await request.formData()
+    const sandwichType = formData.get("sandwichType")
 
     // do something with the sandwichType
 
-    return redirect("/sandwiches");
+    return redirect("/sandwiches")
 }
 
 export default function SandwichChooser() {
@@ -1065,7 +1064,7 @@ export default function SandwichChooser() {
             </label>
             <button type="submit">Create Sandwich</button>
         </Form>
-    );
+    )
 }
 ```
 
@@ -1134,12 +1133,12 @@ function DeployTheSocks() {
     return (
         <button
             onClick={() => {
-                fetch("/api/deploy-the-socks", { method: "POST" });
+                fetch("/api/deploy-the-socks", { method: "POST" })
             }}
         >
             Deploy the socks!
         </button>
-    );
+    )
 }
 ```
 
@@ -1223,7 +1222,7 @@ To get JavaScript running in your application, you use a `script` tag. With this
 <!-- Modern Modules -->
 <script type="module">
     // JavaScript code goes here
-    import { foo } from "path/to/module.js";
+    import { foo } from "path/to/module.js"
 </script>
 <script type="module" src="path/to/module.js"></script>
 ```
@@ -1239,13 +1238,13 @@ One last thing that's important to call out is that in order to solve the "full 
 When you generate a new Remix project, it comes set up with scripts already. The `entry.client.tsx` file is the entry point for the client-side code. Typically, this will be the file responsible for [hydrating the application](https://react.dev/reference/react-dom/client/hydrateRoot). For example:
 
 ```tsx
-import { RemixBrowser } from "@remix-run/react";
-import { startTransition } from "react";
-import { hydrateRoot } from "react-dom/client";
+import { RemixBrowser } from "@remix-run/react"
+import { startTransition } from "react"
+import { hydrateRoot } from "react-dom/client"
 
 startTransition(() => {
-    hydrateRoot(document, <RemixBrowser />);
-});
+    hydrateRoot(document, <RemixBrowser />)
+})
 ```
 
 The `startTransition` bit ensures that the hydration is done in a way that doesn't block the main thread. This is important because hydration can take a while on lower end devices, and we don't want to block the user from interacting with the page while it's happening. For example, if the HTML loads and the user starts scrolling the page, the scroll can be interrupted by hydration, leading to a "janky" experience. By hydrating our root in a transition, we can ensure that the user can interact with the page while hydration is happening without being interrupted.
@@ -1255,7 +1254,7 @@ Another thing to call out is the fact that we're hydrating the entire `document`
 But this is not all that's required to get the client-side code of a Remix app running. Remember that you're responsible for everything between `<html>` and `</html>` in your `app/root.tsx` component. So if you're not rendering any `<script>` elements, then no JavaScript will be loaded. The trick is that because Remix is building (and fingerprinting) our JavaScript, we don't actually know what the `src` attribute of our `<script>` should be. This is why Remix provides a `Scripts` component that you can use to render the necessary `<script>` elements. For example:
 
 ```tsx
-import { Links, Meta, Scripts } from "@remix-run/react";
+import { Links, Meta, Scripts } from "@remix-run/react"
 
 // ...
 export default function App() {
@@ -1270,7 +1269,7 @@ export default function App() {
                 <Scripts />
             </body>
         </html>
-    );
+    )
 }
 // ...
 ```
@@ -1355,22 +1354,19 @@ Remember that UI code runs both on the server and the client. So what we want is
 
 ```tsx
 function ConnectDiscord() {
-    return <a href={getDiscordAuthorizeURL()}>Connect to Discord</a>;
+    return <a href={getDiscordAuthorizeURL()}>Connect to Discord</a>
 }
 
 function getDiscordAuthorizeURL(domainUrl: string) {
-    const url = new URL("https://discord.com/api/oauth2/authorize");
-    url.searchParams.set("client_id", ENV.DISCORD_CLIENT_ID);
+    const url = new URL("https://discord.com/api/oauth2/authorize")
+    url.searchParams.set("client_id", ENV.DISCORD_CLIENT_ID)
     url.searchParams.set(
         "redirect_uri",
         `https://example.com/discord/callback`
-    );
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set(
-        "scope",
-        "identify guilds.join email guilds"
-    );
-    return url.toString();
+    )
+    url.searchParams.set("response_type", "code")
+    url.searchParams.set("scope", "identify guilds.join email guilds")
+    return url.toString()
 }
 ```
 
@@ -1379,9 +1375,9 @@ function getDiscordAuthorizeURL(domainUrl: string) {
 With the `entry.server.tsx`, we can take care of the server-side of setting this global variable which I have done on line 6 with:
 
 ```tsx
-import { getEnv } from "./utils/env.server.ts";
+import { getEnv } from "./utils/env.server.ts"
 
-global.ENV = getEnv();
+global.ENV = getEnv()
 ```
 
 The `env.server.ts` file we have sets up TypeScript to auto-complete the `ENV` global variable.
@@ -1393,7 +1389,7 @@ Right now, all we need in our app is a `MODE` environment variable which is `dev
 Effectively, what we need is a script that does this:
 
 ```tsx
-window.ENV = { MODE: "development" };
+window.ENV = { MODE: "development" }
 ```
 
 We can do this in and then we'll use that `ENV.MODE` variable in to dynamically load some devtools (found in ) when we're in development mode (`ENV.MODE === 'development'`).
@@ -1547,14 +1543,14 @@ export default function App() {
             </head>
             <body>{/* ... */}</body>
         </html>
-    );
+    )
 }
 ```
 
 However, things can get tricky when we start thinking about nested routes and having that title and description be dynamic based on the current route. That's why Remix has a built-in API for routes defining the meta tags that should be used when the route is active through the route meta export. It's similar in some ways to the `links` export, but instead, when a route defines a `meta` export, the `meta` tags from ancestor routes are ignored and must be manually merged. This avoids conflicts between routes that might have the same `meta` tags. However, you do have access to the parent metas in the `meta` function so you can merge them yourself if you so desire.
 
 ```tsx
-import { type MetaFunction } from "@remix-run/react";
+import { type MetaFunction } from "@remix-run/react"
 
 export const meta: MetaFunction = () => {
     return [
@@ -1563,8 +1559,8 @@ export const meta: MetaFunction = () => {
             name: "description",
             content: "Fill your tummy with something yummy",
         },
-    ];
-};
+    ]
+}
 ```
 
 Again, in Remix you're responsible for everything on the page between `<html>` and `</html>` and that's no different here. You need to apply the `<Meta />` component in the `<head>` of your document in your `app/root.tsx` to ensure these meta tags are rendered. Much like the `<Links />` component.
@@ -1584,19 +1580,19 @@ With that example above, the `<head>` of your document would have this:
 You can also access dynamic data (data from your loader) in the meta export so you can dynamically set the title, description, `og:image`, etc for your page.
 
 ```tsx
-import { json } from "@remix-run/node";
-import type { MetaFunction } from "@remix-run/react";
-import { getSandwich } from "../sandwiches.server";
+import { json } from "@remix-run/node"
+import type { MetaFunction } from "@remix-run/react"
+import { getSandwich } from "../sandwiches.server"
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
     return [
         { title: data.sandwich.name },
         { name: "description", content: data.sandwich.description },
-    ];
-};
+    ]
+}
 
 export function loader({ params }) {
-    return json({ sandwich: getSandwich(params.sandwichId) });
+    return json({ sandwich: getSandwich(params.sandwichId) })
 }
 ```
 
@@ -1631,7 +1627,7 @@ To do this, we'll need to use Remix's conventional `meta` export for nested rout
 As a reminder, here's what the API looks like:
 
 ```tsx
-import type { MetaFunction } from "@remix-run/react";
+import type { MetaFunction } from "@remix-run/react"
 
 export const meta: MetaFunction = () => {
     return [
@@ -1640,8 +1636,8 @@ export const meta: MetaFunction = () => {
             name: "description",
             content: "Fill your tummy with something yummy",
         },
-    ];
-};
+    ]
+}
 ```
 
 -   📜 `<Meta />`
@@ -1718,12 +1714,12 @@ Here's an example of how you access data from a route in the meta export:
 export async function loader({ params }: LoaderFunctionArgs) {
     return json({
         task: await getTask(params.projectId, params.taskId),
-    });
+    })
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
-    return [{ title: data.task.name }];
-};
+    return [{ title: data.task.name }]
+}
 ```
 
 -   📜 [`meta` export](https://remix.run/docs/en/main/route/meta-v2)
@@ -1763,10 +1759,10 @@ We could definitely add more data in the loader, but even better would be to acc
 
 ```tsx
 // borrowed and modified from the remix docs
-import type { loader as projectDetailsLoader } from "./$pid";
+import type { loader as projectDetailsLoader } from "./$pid"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    return json({ task: await getTask(params.tid) });
+    return json({ task: await getTask(params.tid) })
 }
 
 export const meta: MetaFunction<
@@ -1775,10 +1771,10 @@ export const meta: MetaFunction<
 > = ({ data, matches }) => {
     const project = matches.find(
         (match) => match.id === "routes/project/$pid"
-    ).project;
-    const task = data.task;
-    return [{ title: `${project.name}: ${task.name}` }];
-};
+    ).project
+    const task = data.task
+    return [{ title: `${project.name}: ${task.name}` }]
+}
 ```
 
 It may be helpful to you to add a `console.log(matches)` in the `meta` before changing much else so you get an idea of what that object looks like. It's especially helpful to find the ID of the route you're looking for.
@@ -1822,18 +1818,18 @@ Remix has a nice way to handle these kinds of errors and customize the UI for th
 Each route module can export a component called `ErrorBoundary` and that component can access the error it's handling via [the useRouteError() hook](https://remix.run/docs/en/main/hooks/use-route-error).
 
 ```tsx
-import { useRouteError } from "@remix-run/react";
+import { useRouteError } from "@remix-run/react"
 
 export function ErrorBoundary() {
-    const error = useRouteError();
-    console.error(error);
+    const error = useRouteError()
+    console.error(error)
 
     return (
         <div>
             <h1>Oh no!</h1>
             <p>Something bad happened! Sorry!</p>
         </div>
-    );
+    )
 }
 ```
 
@@ -1854,18 +1850,18 @@ Please make sure to log the error in the console with `console.error` so we can 
 As a reminder, here's an example of what an error boundary looks like:
 
 ```tsx
-import { useRouteError } from "@remix-run/react";
+import { useRouteError } from "@remix-run/react"
 
 export function ErrorBoundary() {
-    const error = useRouteError();
-    console.error(error);
+    const error = useRouteError()
+    console.error(error)
 
     return (
         <div>
             <h1>Oh no!</h1>
             <p>Something bad happened! Sorry!</p>
         </div>
-    );
+    )
 }
 ```
 
@@ -1890,32 +1886,32 @@ import {
     type ActionFunctionArgs,
     type LoaderFunctionArgs,
     type MetaFunction,
-} from "@remix-run/node";
+} from "@remix-run/node"
 import {
     invariantResponse,
     useIsSubmitting,
-} from "#app/utils/misc.tsx";
-import { getUser } from "#app/utils/auth.server";
-import { getSandwich } from "#app/utils/sandwiches.server";
+} from "#app/utils/misc.tsx"
+import { getUser } from "#app/utils/auth.server"
+import { getSandwich } from "#app/utils/sandwiches.server"
 
 export async function loader({
     request,
     params,
 }: LoaderFunctionArgs) {
-    const user = await getUser(request);
+    const user = await getUser(request)
     if (!user) {
         // this response will be handled by our error boundary
-        throw new Response("Unauthorized", { status: 401 });
+        throw new Response("Unauthorized", { status: 401 })
     }
     // this invariant with throw an error which our error boundary will handle as well
-    invariantResponse(params.sandwichId, "sandwichId is required");
+    invariantResponse(params.sandwichId, "sandwichId is required")
 
-    const sandwich = await getSandwich(params.sandwichId);
+    const sandwich = await getSandwich(params.sandwichId)
     if (!sandwich) {
         // this response will be handled by our error boundary
-        throw new Response("Not Found", { status: 404 });
+        throw new Response("Not Found", { status: 404 })
     }
-    return json({ sandwich });
+    return json({ sandwich })
 }
 ```
 
@@ -1928,16 +1924,16 @@ Here's an example of handling a response error:
 
 ```tsx
 export function ErrorBoundary() {
-    const error = useRouteError();
+    const error = useRouteError()
     if (isRouteErrorResponse(error)) {
         if (error.status === 404) {
-            return <p>Not Found</p>;
+            return <p>Not Found</p>
         }
         if (error.status === 401) {
-            return <p>Unauthorized</p>;
+            return <p>Unauthorized</p>
         }
     }
-    return <p>Something went wrong</p>;
+    return <p>Something went wrong</p>
 }
 ```
 
@@ -1945,11 +1941,11 @@ This mechanism of throwing responses is quite powerful because it allows us to b
 
 ```tsx
 export async function requireUser(request: Request) {
-    const user = await getUser(request);
+    const user = await getUser(request)
     if (!user) {
-        throw new Response("Unauthorized", { status: 401 });
+        throw new Response("Unauthorized", { status: 401 })
     }
-    return user;
+    return user
 }
 ```
 
@@ -1957,28 +1953,28 @@ And now we know that if we get the user from `requireUser` they are in fact logg
 
 ```tsx
 export async function requireUser(request: Request) {
-    const user = await getUser(request);
+    const user = await getUser(request)
     if (!user) {
         throw new Response(null, {
             status: 302,
             headers: { Location: "/login" },
-        });
+        })
     }
-    return user;
+    return user
 }
 ```
 
 Remix has a handy utility for redirects as well:
 
 ```tsx
-import { redirect } from "@remix-run/node";
+import { redirect } from "@remix-run/node"
 
 export async function requireUser(request: Request) {
-    const user = await getUser(request);
+    const user = await getUser(request)
     if (!user) {
-        throw redirect("/login");
+        throw redirect("/login")
     }
-    return user;
+    return user
 }
 ```
 
@@ -1990,36 +1986,36 @@ import {
     type ActionFunctionArgs,
     type LoaderFunctionArgs,
     type MetaFunction,
-} from "@remix-run/node";
+} from "@remix-run/node"
 import {
     invariantResponse,
     useIsSubmitting,
-} from "#app/utils/misc.tsx";
-import { requireUser } from "#app/utils/auth.server";
-import { requireSandwich } from "#app/utils/sandwiches.server";
-import { getUser } from "#app/utils/auth.server";
-import { getSandwich } from "#app/utils/sandwiches.server";
+} from "#app/utils/misc.tsx"
+import { requireUser } from "#app/utils/auth.server"
+import { requireSandwich } from "#app/utils/sandwiches.server"
+import { getUser } from "#app/utils/auth.server"
+import { getSandwich } from "#app/utils/sandwiches.server"
 
 export async function loader({
     request,
     params,
 }: LoaderFunctionArgs) {
-    const user = await requireUser(request);
-    const user = await getUser(request);
+    const user = await requireUser(request)
+    const user = await getUser(request)
     if (!user) {
         // this response will be handled by our error boundary
-        throw new Response("Unauthorized", { status: 401 });
+        throw new Response("Unauthorized", { status: 401 })
     }
     // this invariant with throw an error which our error boundary will handle as well
-    invariantResponse(params.sandwichId, "sandwichId is required");
+    invariantResponse(params.sandwichId, "sandwichId is required")
 
-    const sandwich = await requireSandwich(params.sandwichId);
-    const sandwich = await getSandwich(params.sandwichId);
+    const sandwich = await requireSandwich(params.sandwichId)
+    const sandwich = await getSandwich(params.sandwichId)
     if (!sandwich) {
         // this response will be handled by our error boundary
-        throw new Response("Not Found", { status: 404 });
+        throw new Response("Not Found", { status: 404 })
     }
-    return json({ sandwich });
+    return json({ sandwich })
 }
 ```
 
@@ -2050,7 +2046,7 @@ export function ErrorBoundary() {
                 ),
             }}
         />
-    );
+    )
 }
 ```
 
@@ -2063,7 +2059,7 @@ Go ahead and add this to the loader in `app/routes/users+/$username_+/notes.$not
 
 ```tsx
 if (Math.random() > 0.5) {
-    throw new Error("Oh no!");
+    throw new Error("Oh no!")
 }
 ```
 
@@ -2109,11 +2105,11 @@ So when you're all done, it should look something like this:
 
 ```tsx
 export default function App() {
-    return <Document>{/* app stuff */}</Document>;
+    return <Document>{/* app stuff */}</Document>
 }
 
 export function ErrorBoundary() {
-    return <Document>{/* error stuff */}</Document>;
+    return <Document>{/* error stuff */}</Document>
 }
 ```
 
@@ -2155,20 +2151,20 @@ response:
 
 ```tsx
 export async function loader() {
-    throw new Response("Not found", { status: 404 });
+    throw new Response("Not found", { status: 404 })
 }
 ```
 
 Next, let's 🐨 export the `ErrorBoundary`:
 
 ```tsx
-import { Link, useLocation } from "@remix-run/react";
-import { GeneralErrorBoundary } from "~/components/error-boundary.tsx";
+import { Link, useLocation } from "@remix-run/react"
+import { GeneralErrorBoundary } from "~/components/error-boundary.tsx"
 
 // ...
 
 export function ErrorBoundary() {
-    const location = useLocation();
+    const location = useLocation()
     return (
         <GeneralErrorBoundary
             statusHandlers={{
@@ -2190,7 +2186,7 @@ export function ErrorBoundary() {
                 ),
             }}
         />
-    );
+    )
 }
 ```
 
@@ -2204,7 +2200,7 @@ user:
 export default function NotFound() {
     // due to the loader, this component will never be rendered, but we'll return
     // the error boundary just in case.
-    return <ErrorBoundary />;
+    return <ErrorBoundary />
 }
 
 // ...
@@ -2302,35 +2298,35 @@ You can use native HTML form validation attributes on the `input` and `textarea`
 The `action` can do some validation, whatever validation it likes (even `async` validation), and if there are errors it can send them back in a JSON response. You get what the `action` returns using a hook called `useActionData` which is very similar to `useLoaderData` with the exception that it will return `undefined` until the `action` has been called. Here's an example of that:
 
 ```tsx
-import type { ActionFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { useActionData } from "@remix-run/react";
+import type { ActionFunctionArgs } from "@remix-run/node"
+import { json, redirect } from "@remix-run/node"
+import { useActionData } from "@remix-run/react"
 
 type ActionErrors = {
-    formErrors: Array<string>;
+    formErrors: Array<string>
     fieldErrors: {
-        email: Array<string>;
-    };
-};
+        email: Array<string>
+    }
+}
 
 export async function action({ request }: ActionFunctionArgs) {
-    const formData = await request.formData();
-    const email = formData.get("email");
+    const formData = await request.formData()
+    const email = formData.get("email")
 
     const errors: ActionErrors = {
         formErrors: [],
         fieldErrors: {
             email: [],
         },
-    };
+    }
     if (email.length < 3 && !email.includes("@")) {
-        errors.fieldErrors.email.push("Invalid email");
+        errors.fieldErrors.email.push("Invalid email")
     }
     const hasErrors =
         errors.formErrors.length ||
         Object.values(errors.fieldErrors).some(
             (fieldErrors) => fieldErrors.length
-        );
+        )
     if (hasErrors) {
         return json(
             {
@@ -2339,25 +2335,25 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 🦺 the as const is here to help with our TypeScript inference
             } as const,
             { status: 400 }
-        );
+        )
     }
 
     // subscribe the user to the newsletter
 
-    return redirect("/success");
+    return redirect("/success")
 }
 
 export default function Subscribe() {
-    const actionData = useActionData<typeof action>();
+    const actionData = useActionData<typeof action>()
 
     const fieldErrors =
         actionData?.status === "error"
             ? actionData.errors.fieldErrors
-            : null;
+            : null
     const formErrors =
         actionData?.status === "error"
             ? actionData.errors.formErrors
-            : null;
+            : null
 
     return (
         <Form method="post">
@@ -2373,7 +2369,7 @@ export default function Subscribe() {
             ) : null}
             <button type="submit">Subscribe</button>
         </Form>
-    );
+    )
 }
 ```
 
@@ -2396,7 +2392,7 @@ function ErrorList({ errors }: { errors?: Array<string> | null }) {
                 </li>
             ))}
         </ul>
-    ) : null;
+    ) : null
 }
 ```
 
@@ -2428,9 +2424,9 @@ But we don't want to disable them completely, just once our JavaScript has loade
 
 ```tsx
 function useHydrated() {
-    const [hydrated, setHydrated] = useState(false);
-    useEffect(() => setHydrated(true), []);
-    return hydrated;
+    const [hydrated, setHydrated] = useState(false)
+    useEffect(() => setHydrated(true), [])
+    return hydrated
 }
 ```
 
@@ -2579,10 +2575,8 @@ And when the title has an error, it should render HTML like this:
 Note that `aria-invalid` and `aria-describedby` are not present unless there is an error. To accomplish this, you can pass `undefined` as their values if there is no error, for example:
 
 ```html
-<input
-	aria-invalid={hasErrors || undefined}
-	aria-describedby={hasErrors ? 'id' : undefined}
-/>
+<input aria-invalid={hasErrors || undefined}
+aria-describedby={hasErrors ? 'id' : undefined} />
 ```
 
 The emoji will give you some tips on creating variables to make this easier.
@@ -2614,9 +2608,9 @@ While we're at it, let's add `autoFocus` to the `title` field, so folks can star
 
 You can read the following:
 
-- 📜 [Element: matches() method](https://mdn.io/element.matches)
-- 📜 [Manipulating the DOM with a ref ](https://react.dev/reference/react/useRef#manipulating-the-dom-with-a-ref)
-- 📜 [tabindex](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex)
+-   📜 [Element: matches() method](https://mdn.io/element.matches)
+-   📜 [Manipulating the DOM with a ref ](https://react.dev/reference/react/useRef#manipulating-the-dom-with-a-ref)
+-   📜 [tabindex](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex)
 
 #### Conclusion
 
@@ -2633,17 +2627,21 @@ useFocusInvalid(formRef.current, hasErrors)
 It doesn't take long before you are really tired of writing code that looks like this:
 
 ```tsx
-if (title === '') {
-	errors.fieldErrors.title.push('Title is required')
+if (title === "") {
+    errors.fieldErrors.title.push("Title is required")
 }
 if (title.length > titleMaxLength) {
-	errors.fieldErrors.title.push('Title must be at most 100 characters')
+    errors.fieldErrors.title.push(
+        "Title must be at most 100 characters"
+    )
 }
-if (content === '') {
-	errors.fieldErrors.content.push('Content is required')
+if (content === "") {
+    errors.fieldErrors.content.push("Content is required")
 }
 if (content.length > contentMaxLength) {
-	errors.fieldErrors.content.push('Content must be at most 10000 characters')
+    errors.fieldErrors.content.push(
+        "Content must be at most 10000 characters"
+    )
 }
 ```
 
@@ -2653,26 +2651,28 @@ If you haven't felt the draw to write a utility to improve this yet, you will. F
 
 ```tsx
 function validate(value: string, max: number) {
-	const errors = []
-	if (value === '') {
-		errors.push('Required')
-	}
-	if (value.length > max) {
-		errors.push(`Must be at most ${max} characters`)
-	}
-	return errors
+    const errors = []
+    if (value === "") {
+        errors.push("Required")
+    }
+    if (value.length > max) {
+        errors.push(`Must be at most ${max} characters`)
+    }
+    return errors
 }
 
 errors.fieldErrors.title.push(...validate(title, titleMaxLength))
-errors.fieldErrors.content.push(...validate(content, contentMaxLength))
+errors.fieldErrors.content.push(
+    ...validate(content, contentMaxLength)
+)
 ```
 
 Luckily, there are already libraries that do this for us so we don't have to trouble ourselves with writing our own validation. On top of this, they allow you to be much more declarative with your validation. The library we'll use looks like this:
 
 ```tsx
 z.object({
-	title: z.string().max(titleMaxLength),
-	content: z.string().max(contentMaxLength),
+    title: z.string().max(titleMaxLength),
+    content: z.string().max(contentMaxLength),
 })
 ```
 
@@ -2682,9 +2682,9 @@ This is how you create your schema. And then you use that to perform the validat
 const result = schema.safeParse({ title, content })
 
 if (result.success) {
-	// we're good, check result.data
+    // we're good, check result.data
 } else {
-	// we're not good, check result.error
+    // we're not good, check result.error
 }
 ```
 
@@ -2699,23 +2699,23 @@ And because it has fantastic TypeScript support, it allows us to have a lot more
 Zod also allows for a great deal of customization and [refinement](https://zod.dev/?id=refine) in your validation and error messages. Here are some examples from [the Zod docs](https://zod.dev/):
 
 ```tsx
-z.string().max(5, { message: 'Must be 5 or fewer characters long' })
+z.string().max(5, { message: "Must be 5 or fewer characters long" })
 
 // even type inference based on the schema:
 const A = z.string()
 type A = z.infer<typeof A> // string
 
 const name = z.string({
-	required_error: 'Name is required',
-	invalid_type_error: 'Name must be a string',
+    required_error: "Name is required",
+    invalid_type_error: "Name must be a string",
 })
 
 const user = z.object({
-	username: z.string().optional(),
+    username: z.string().optional(),
 })
 
 const nonEmptyStrings = z.array(z.string()).nonempty({
-	message: "Can't be empty!",
+    message: "Can't be empty!",
 })
 ```
 
@@ -2725,7 +2725,7 @@ Zod is extremely powerful. I recommend you have the documentation open during th
 
 One of the benefits to using a declarative interface for validation is that you can use that same schema to assist in the generation of that data–including for the forms users will fill out!
 
-While you most definitely *can* generate the entire form based on the schema if you want to (I've done this [before]()), we're going to keep our UI flexibility and just use the schema to give us type safe data to create the props for our forms.
+While you most definitely _can_ generate the entire form based on the schema if you want to (I've done this [before]()), we're going to keep our UI flexibility and just use the schema to give us type safe data to create the props for our forms.
 
 You may not have thought about it, but often we duplicate our validation logic between our client and our server. We do it on the server because we have to and on the client because we want to give the user feedback as they're filling out the form (for a better UX).
 
@@ -2735,7 +2735,7 @@ If you have a schema like this:
 
 ```tsx
 const FormSchema = z.object({
-	email: z.string().email(),
+    email: z.string().email(),
 })
 ```
 
@@ -2743,8 +2743,8 @@ Then you want the form to look like this:
 
 ```html
 <form method="post">
-	<label for="email-input">Email</label>
-	<input id="email-input" type="email" required />
+    <label for="email-input">Email</label>
+    <input id="email-input" type="email" required />
 </form>
 ```
 
@@ -2752,17 +2752,17 @@ And when there's an error, we also want to have the right aria attributes:
 
 ```html
 <form method="post">
-	<label for="email-input">Email</label>
-	<input
-		id="email-input"
-		type="email"
-		aria-invalid="true"
-		aria-describedby="email-errors"
-		required
-	/>
-	<ul id="email-errors">
-		<li>Must be a valid email address</li>
-	</ul>
+    <label for="email-input">Email</label>
+    <input
+        id="email-input"
+        type="email"
+        aria-invalid="true"
+        aria-describedby="email-errors"
+        required
+    />
+    <ul id="email-errors">
+        <li>Must be a valid email address</li>
+    </ul>
 </form>
 ```
 
@@ -2775,114 +2775,120 @@ Progressive Enhancement is the idea that your application starts with a baseline
 Conform has an adapter for Zod schemas with utilities that are perfect for what we're looking for. Here's an example:
 
 ```tsx
-import { conform, useForm } from '@conform-to/react'
-import { getFieldsetConstraint, parse } from '@conform-to/zod'
-import { Form } from '@remix-run/react'
-import { json, redirect } from '@remix-run/node'
-import { z } from 'zod'
+import { conform, useForm } from "@conform-to/react"
+import { getFieldsetConstraint, parse } from "@conform-to/zod"
+import { Form } from "@remix-run/react"
+import { json, redirect } from "@remix-run/node"
+import { z } from "zod"
 
 const LoginSchema = z.object({
-	email: z
-		.string({ required_error: 'Email is required' })
-		.email('Email is invalid'),
-	password: z.string({ required_error: 'Password is required' }),
+    email: z
+        .string({ required_error: "Email is required" })
+        .email("Email is invalid"),
+    password: z.string({ required_error: "Password is required" }),
 })
 
 export async function action({ request }: ActionFunctionArgs) {
-	const formData = await request.formData()
-	const submission = parse(formData, {
-		schema: LoginSchema,
-	})
+    const formData = await request.formData()
+    const submission = parse(formData, {
+        schema: LoginSchema,
+    })
 
-	if (submission.intent !== 'submit') {
-		// the user hasn't submitted the form yet
-		// this will happen if Conform is validating the form before submission
-		// (like if we configure Conform to validate onBlur)
-		return json({ status: 'idle', submission } as const)
-	}
+    if (submission.intent !== "submit") {
+        // the user hasn't submitted the form yet
+        // this will happen if Conform is validating the form before submission
+        // (like if we configure Conform to validate onBlur)
+        return json({ status: "idle", submission } as const)
+    }
 
-	if (!submission.value) {
-		// there's no value because there is an error in the form
-		return json({ status: 'error', submission } as const, {
-			status: 400,
-		})
-	}
+    if (!submission.value) {
+        // there's no value because there is an error in the form
+        return json({ status: "error", submission } as const, {
+            status: 400,
+        })
+    }
 
-	const { email, password } = submission.value
+    const { email, password } = submission.value
 
-	const isAuthenticated = await authenticate({ email, password })
-	if (!isAuthenticated) {
-		// set the form error:
-		submission.error[''] = ['Invalid email or password']
-		return json(
-			{
-				status: 'error',
-				submission,
-			} as const,
-			{
-				status: 401,
-			},
-		)
-	}
+    const isAuthenticated = await authenticate({ email, password })
+    if (!isAuthenticated) {
+        // set the form error:
+        submission.error[""] = ["Invalid email or password"]
+        return json(
+            {
+                status: "error",
+                submission,
+            } as const,
+            {
+                status: 401,
+            }
+        )
+    }
 
-	return redirect('/dashboard')
+    return redirect("/dashboard")
 }
 
 export default function LoginForm() {
-	const actionData = useActionData<typeof action>()
-	const [form, fields] = useForm({
-		id: 'login-form',
-		constraint: getFieldsetConstraint(LoginSchema),
-		lastSubmission: actionData?.submission,
-		onValidate({ formData }) {
-			return parse(formData, { schema: LoginSchema })
-		},
-	})
+    const actionData = useActionData<typeof action>()
+    const [form, fields] = useForm({
+        id: "login-form",
+        constraint: getFieldsetConstraint(LoginSchema),
+        lastSubmission: actionData?.submission,
+        onValidate({ formData }) {
+            return parse(formData, { schema: LoginSchema })
+        },
+    })
 
-	return (
-		<Form method="post" {...form.props}>
-			<div>
-				<label htmlFor={fields.email.id}>Email</label>
-				<input {...conform.input(fields.email)} />
-				<ErrorList id={fields.email.errorId} errors={fields.email.errors} />
-			</div>
-			<div>
-				<label htmlFor={fields.password.id}>Password</label>
-				<input
-					{...conform.input(fields.password, {
-						type: 'password',
-					})}
-				/>
-				<ErrorList
-					id={fields.password.errorId}
-					errors={fields.password.errors}
-				/>
-			</div>
-			<ErrorList id={form.errorId} errors={form.errors} />
-			<button type="submit">Login</button>
-		</Form>
-	)
+    return (
+        <Form method="post" {...form.props}>
+            <div>
+                <label htmlFor={fields.email.id}>Email</label>
+                <input {...conform.input(fields.email)} />
+                <ErrorList
+                    id={fields.email.errorId}
+                    errors={fields.email.errors}
+                />
+            </div>
+            <div>
+                <label htmlFor={fields.password.id}>Password</label>
+                <input
+                    {...conform.input(fields.password, {
+                        type: "password",
+                    })}
+                />
+                <ErrorList
+                    id={fields.password.errorId}
+                    errors={fields.password.errors}
+                />
+            </div>
+            <ErrorList id={form.errorId} errors={form.errors} />
+            <button type="submit">Login</button>
+        </Form>
+    )
 }
 
 function ErrorList({
-	id,
-	errors,
+    id,
+    errors,
 }: {
-	id?: string
-	errors?: Array<string> | null
+    id?: string
+    errors?: Array<string> | null
 }) {
-	if (!errors) return null
-	errors = Array.isArray(errors) ? errors : [errors]
+    if (!errors) return null
+    errors = Array.isArray(errors) ? errors : [errors]
 
-	return errors.length ? (
-		<ul id={id} className="flex flex-col gap-1">
-			{errors.map((error, i) => (
-				<li key={i} className="text-foreground-destructive text-[10px]">
-					{error}
-				</li>
-			))}
-		</ul>
-	) : null
+    return errors.length ? (
+        <ul id={id} className="flex flex-col gap-1">
+            {errors.map((error, i) => (
+                <li
+                    key={i}
+                    className="text-foreground-destructive text-[10px]"
+                >
+                    {error}
+                </li>
+            ))}
+        </ul>
+    ) : null
 }
 ```
 
@@ -2901,7 +2907,7 @@ The [Error Handling](https://zod.dev/ERROR_HANDLING) docs can be quite helpful. 
 
 ```tsx
 if (!result.success) {
-	console.log(result.error.flatten())
+    console.log(result.error.flatten())
 }
 /*
   {
@@ -2918,17 +2924,17 @@ That shape may look a little familiar 😅
 
 That should be enough to get you going.
 
-- [📜 Zod docs](https://zod.dev)
-- [📜 Zod Error Handling](https://zod.dev/ERROR_HANDLING)
-- [📜 Zod Flattening Errors](https://zod.dev/ERROR_HANDLING?id=flattening-errors)
+-   [📜 Zod docs](https://zod.dev)
+-   [📜 Zod Error Handling](https://zod.dev/ERROR_HANDLING)
+-   [📜 Zod Flattening Errors](https://zod.dev/ERROR_HANDLING?id=flattening-errors)
 
 #### Solution
 
-👨‍💼 Zod is an incredibly powerful solution. Thanks to its error message customization, we'll be able to translate the error messages in the future as well. 
+👨‍💼 Zod is an incredibly powerful solution. Thanks to its error message customization, we'll be able to translate the error messages in the future as well.
 
 It's definitely something you need to get used to over time, but the investment is worthwhile.
 
-Unfortunately, it's not *quite* optimized to handle parsing `formData` like we're doing. So let's improve that a bit with another utility for helping us with our forms.
+Unfortunately, it's not _quite_ optimized to handle parsing `formData` like we're doing. So let's improve that a bit with another utility for helping us with our forms.
 
 ### 2.3.2 Conform action utils
 
@@ -2937,64 +2943,64 @@ Unfortunately, it's not *quite* optimized to handle parsing `formData` like we'r
 Here's the relevant part of the example from the background info we saw earlier:
 
 ```tsx
-import { getFieldsetConstraint, parse } from '@conform-to/zod'
-import { Form } from '@remix-run/react'
-import { json, redirect } from '@remix-run/node'
-import { z } from 'zod'
+import { getFieldsetConstraint, parse } from "@conform-to/zod"
+import { Form } from "@remix-run/react"
+import { json, redirect } from "@remix-run/node"
+import { z } from "zod"
 
 const LoginSchema = z.object({
-	email: z
-		.string({ required_error: 'Email is required' })
-		.email('Email is invalid'),
-	password: z.string({ required_error: 'Password is required' }),
+    email: z
+        .string({ required_error: "Email is required" })
+        .email("Email is invalid"),
+    password: z.string({ required_error: "Password is required" }),
 })
 
 export async function action({ request }: ActionFunctionArgs) {
-	const formData = await request.formData()
-	const submission = parse(formData, {
-		schema: LoginSchema,
-	})
+    const formData = await request.formData()
+    const submission = parse(formData, {
+        schema: LoginSchema,
+    })
 
-	if (submission.intent !== 'submit') {
-		// the user hasn't submitted the form yet
-		// this will happen if Conform is validating the form before submission
-		// (like if we configure Conform to validate onBlur)
-		// We'll not add this yet, we'll get to it later.
-		return json({ status: 'idle', submission } as const)
-	}
+    if (submission.intent !== "submit") {
+        // the user hasn't submitted the form yet
+        // this will happen if Conform is validating the form before submission
+        // (like if we configure Conform to validate onBlur)
+        // We'll not add this yet, we'll get to it later.
+        return json({ status: "idle", submission } as const)
+    }
 
-	if (!submission.value) {
-		// there's no value because there is an error in the form
-		return json({ status: 'error', submission } as const, {
-			status: 400,
-		})
-	}
+    if (!submission.value) {
+        // there's no value because there is an error in the form
+        return json({ status: "error", submission } as const, {
+            status: 400,
+        })
+    }
 
-	const { email, password } = submission.value
+    const { email, password } = submission.value
 
-	const isAuthenticated = await authenticate({ email, password })
-	if (!isAuthenticated) {
-		// set the form error:
-		submission.error[''] = ['Invalid email or password']
-		return json(
-			{
-				status: 'error',
-				submission,
-			} as const,
-			{ status: 401 },
-		)
-	}
+    const isAuthenticated = await authenticate({ email, password })
+    if (!isAuthenticated) {
+        // set the form error:
+        submission.error[""] = ["Invalid email or password"]
+        return json(
+            {
+                status: "error",
+                submission,
+            } as const,
+            { status: 401 }
+        )
+    }
 
-	return redirect('/dashboard')
+    return redirect("/dashboard")
 }
 ```
 
-Could you update our form to use this in the `action`? This will require a few changes in the UI as well because the errors are *slightly* different and we'll be passing back a *submission* object instead of just the *errors*.
+Could you update our form to use this in the `action`? This will require a few changes in the UI as well because the errors are _slightly_ different and we'll be passing back a _submission_ object instead of just the _errors_.
 
 🦉 I'd like you to check out what the `submission` object looks like in the network tab or log it to the console. Why do you suppose all that information is necessary?
 
-- [📜 `@conform-to/zod`](https://conform.guide)
-- [📜 Conform Validation](https://conform.guide/validation)
+-   [📜 `@conform-to/zod`](https://conform.guide)
+-   [📜 Conform Validation](https://conform.guide/validation)
 
 #### Conclusion
 
@@ -3095,31 +3101,31 @@ Oh, one thing that's not in our example that we'll be using is the `defaultValue
 
 ```tsx
 const [form, fields] = useForm({
-	id: 'login-form',
-	constraint: getFieldsetConstraint(LoginSchema),
-	lastSubmission: actionData?.submission,
-	onValidate({ formData }) {
-		return parse(formData, { schema: LoginSchema })
-	},
-	defaultValue: {
-		email: user.email,
-		password: 'lol',
-	},
+    id: "login-form",
+    constraint: getFieldsetConstraint(LoginSchema),
+    lastSubmission: actionData?.submission,
+    onValidate({ formData }) {
+        return parse(formData, { schema: LoginSchema })
+    },
+    defaultValue: {
+        email: user.email,
+        password: "lol",
+    },
 })
 ```
 
-- [📜 Conform Remix Integration](https://conform.guide/integration/remix)
-- [📜 Conform Accessibility](https://conform.guide/accessibility)
+-   [📜 Conform Remix Integration](https://conform.guide/integration/remix)
+-   [📜 Conform Accessibility](https://conform.guide/accessibility)
 
 👨‍💼 Stellar! We've not only drastically reduced the amount of code (and therefore potential for bugs caused by human error as well as maintenance burden), but we've also improved the user experience by making the form more progressively enhanced.
 
 Give this a shot:
 
-- Disable JavaScript (using DevTools or go to and comment out the <Scripts /> element there).
-- Reload the form page.
-- Remove the contents of the "Title" field.
-- Now try to submit an invalid form.
-- Notice that the error shows up, and the title is still empty!
+-   Disable JavaScript (using DevTools or go to and comment out the <Scripts /> element there).
+-   Reload the form page.
+-   Remove the contents of the "Title" field.
+-   Now try to submit an invalid form.
+-   Notice that the error shows up, and the title is still empty!
 
 This should illustrate to you that we've successfully implemented progressive enhancement for this form. The user won't lose any work in the event the JavaScript fails to load. This is a very important aspect of accessibility. Huzzah!
 
@@ -3135,9 +3141,9 @@ Here's a simple example of its usage:
 
 ```html
 <form action="/upload" method="post" enctype="multipart/form-data">
-	<label for="file-upload-input">Upload File</label>
-	<input type="file" id="file-upload-input" name="file-upload" />
-	<button type="submit">Upload File</button>
+    <label for="file-upload-input">Upload File</label>
+    <input type="file" id="file-upload-input" name="file-upload" />
+    <button type="submit">Upload File</button>
 </form>
 ```
 
@@ -3147,8 +3153,8 @@ For multiple file selection, you simply add the multiple attribute:
 
 ```html
 <form action="/upload" method="post" enctype="multipart/form-data">
-	<input type="file" id="file-upload" name="file-upload" multiple />
-	<input type="submit" value="Upload File" />
+    <input type="file" id="file-upload" name="file-upload" multiple />
+    <input type="submit" value="Upload File" />
 </form>
 ```
 
@@ -3161,7 +3167,12 @@ Keep in mind that due to privacy concerns, JavaScript in the browser doesn't hav
 You can also use the `accept` attribute to specify the types of files that can be uploaded. This is a comma-separated list of MIME types or file extensions. For example, to only allow images to be uploaded, you can use the following:
 
 ```html
-<input type="file" id="file-upload" name="file-upload" accept="image/*" />
+<input
+    type="file"
+    id="file-upload"
+    name="file-upload"
+    accept="image/*"
+/>
 ```
 
 #### On the server
@@ -3188,19 +3199,22 @@ Here's how you could use the memory upload handler (copied from the Remix docs):
 
 ```jsx
 import {
-	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
-	unstable_parseMultipartFormData as parseMultipartFormData,
-} from '@remix-run/node'
+    unstable_createMemoryUploadHandler as createMemoryUploadHandler,
+    unstable_parseMultipartFormData as parseMultipartFormData,
+} from "@remix-run/node"
 export const action = async ({ request }: ActionArgs) => {
-	const uploadHandler = createMemoryUploadHandler({
-		maxPartSize: 1024 * 1024 * 5, // 5 MB
-	})
-	const formData = await parseMultipartFormData(request, uploadHandler)
+    const uploadHandler = createMemoryUploadHandler({
+        maxPartSize: 1024 * 1024 * 5, // 5 MB
+    })
+    const formData = await parseMultipartFormData(
+        request,
+        uploadHandler
+    )
 
-	const file = formData.get('avatar')
+    const file = formData.get("avatar")
 
-	// file is a "File" (https://mdn.io/File) polyfilled for node
-	// ... etc
+    // file is a "File" (https://mdn.io/File) polyfilled for node
+    // ... etc
 }
 ```
 
@@ -3222,23 +3236,26 @@ You'll find it at the bottom of `app/routes/users+/$username_+/notes.$noteId_.ed
 
 ```jsx
 export async function loader({ params }: LoaderFunctionArgs) {
-	const note = db.note.findFirst({
-		where: {
-			id: {
-				equals: params.noteId,
-			},
-		},
-	})
-	if (!note) {
-		throw new Response('Note not found', { status: 404 })
-	}
-	return json({
-		note: {
-			title: note.title,
-			content: note.content,
-			images: note.images.map(i => ({ id: i.id, altText: i.altText })),
-		},
-	})
+    const note = db.note.findFirst({
+        where: {
+            id: {
+                equals: params.noteId,
+            },
+        },
+    })
+    if (!note) {
+        throw new Response("Note not found", { status: 404 })
+    }
+    return json({
+        note: {
+            title: note.title,
+            content: note.content,
+            images: note.images.map((i) => ({
+                id: i.id,
+                altText: i.altText,
+            })),
+        },
+    })
 }
 ```
 
@@ -3252,37 +3269,40 @@ Alright, with that background, I think you're ready to make your adjustments! Go
 
 At a high-level, here's what you'll be adjusting:
 
-- Update the `encType` of the form so we can accept file uploads
-- Update the type on our file upload input so it's a file input
-- Properly parse the request in our action so it can handle the file upload using Remix's memory upload handler
-- Render a hidden input for the existing image ID if it does exist so it's preserved if the user's just wanting to update the alt text.
+-   Update the `encType` of the form so we can accept file uploads
+-   Update the type on our file upload input so it's a file input
+-   Properly parse the request in our action so it can handle the file upload using Remix's memory upload handler
+-   Render a hidden input for the existing image ID if it does exist so it's preserved if the user's just wanting to update the alt text.
 
 Here's that example again of how to process the file in your action:
 
 ```jsx
 import {
-	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
-	unstable_parseMultipartFormData as parseMultipartFormData,
-} from '@remix-run/node'
+    unstable_createMemoryUploadHandler as createMemoryUploadHandler,
+    unstable_parseMultipartFormData as parseMultipartFormData,
+} from "@remix-run/node"
 export const action = async ({ request }: ActionArgs) => {
-	const uploadHandler = createMemoryUploadHandler({
-		maxPartSize: 1024 * 1024 * 5, // 5 MB
-	})
-	const formData = await parseMultipartFormData(request, uploadHandler)
+    const uploadHandler = createMemoryUploadHandler({
+        maxPartSize: 1024 * 1024 * 5, // 5 MB
+    })
+    const formData = await parseMultipartFormData(
+        request,
+        uploadHandler
+    )
 
-	const file = formData.get('avatar')
+    const file = formData.get("avatar")
 
-	// file is a "File" (https://mdn.io/File) polyfilled for node
-	// ... etc
+    // file is a "File" (https://mdn.io/File) polyfilled for node
+    // ... etc
 }
 ```
 
 The emoji team (🐨💰🦺💣) will be in there to help guide you through this one. Enjoy!
 
-- [📜 `input[type=file]`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file)
-- [📜 `File`](https://developer.mozilla.org/en-US/docs/Web/API/File)
-- [📜 **`unstable_parseMultipartFormData`**](https://remix.run/docs/en/main/utils/parse-multipart-form-data)
-- [📜 **`unstable_createMemoryUploadHandler`**](https://remix.run/docs/en/main/utils/unstable-create-memory-upload-handler)
+-   [📜 `input[type=file]`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file)
+-   [📜 `File`](https://developer.mozilla.org/en-US/docs/Web/API/File)
+-   [📜 **`unstable_parseMultipartFormData`**](https://remix.run/docs/en/main/utils/parse-multipart-form-data)
+-   [📜 **`unstable_createMemoryUploadHandler`**](https://remix.run/docs/en/main/utils/unstable-create-memory-upload-handler)
 
 #### Conclusion
 
@@ -3307,21 +3327,21 @@ To help you with the Zod schema, you may checkout [the Conform docs on File Uplo
 
 ```tsx
 const schema = z.object({
-	profile: z.instanceof(File, { message: 'Profile is required' }),
+    profile: z.instanceof(File, { message: "Profile is required" }),
 })
 ```
 
-In our case, the file is optional since the user may just be updating an existing file. But we *do* want to warn the user if they're going to try and upload a file that's too large, so for our `refine` call, we can just check that the `file.size` isn't too big.
+In our case, the file is optional since the user may just be updating an existing file. But we _do_ want to warn the user if they're going to try and upload a file that's too large, so for our `refine` call, we can just check that the `file.size` isn't too big.
 
 Note: The `File` class is a browser API and not typically available in Node.js. However Remix polyfills this for us (check out{' '} where we use `installGlobals` from Remix).
-We'll get to actually *displaying* errors later on.
+We'll get to actually _displaying_ errors later on.
 
 If you're trying to submit the form and nothing is happening, it could be an error that's preventing the form from submitting. But you'll not see the errors until we add those. Until then, you can comment out the `onValidate` function to prevent client-side validation and check out errors in the network tab.
 With that, you should be good to go on this one!
 
-- [📜 Conform File Uploads](https://conform.guide/file-upload)
-- [📜 Zod `instanceof`](https://zod.dev/?id=instanceof)
-- [📜 Zod `refine`](https://zod.dev/?id=refine)
+-   [📜 Conform File Uploads](https://conform.guide/file-upload)
+-   [📜 Zod `instanceof`](https://zod.dev/?id=instanceof)
+-   [📜 Zod `refine`](https://zod.dev/?id=refine)
 
 #### Conclusion
 
@@ -3339,9 +3359,9 @@ How would you represent an array in an HTML form? Maybe you'd do something like 
 
 ```html
 <form>
-	<input type="text" name="todo[]" value="Buy milk" />
-	<input type="text" name="todo[]" value="Buy eggs" />
-	<input type="text" name="todo[]" value="Wash dishes" />
+    <input type="text" name="todo[]" value="Buy milk" />
+    <input type="text" name="todo[]" value="Buy eggs" />
+    <input type="text" name="todo[]" value="Wash dishes" />
 </form>
 ```
 
@@ -3349,31 +3369,31 @@ While that's technically valid HTML, it's not very useful. If you inspected the 
 
 ```tsx
 const formData = new FormData(form)
-formData.get('todo') // null
-formData.get('todo[]') // "Buy milk"
+formData.get("todo") // null
+formData.get("todo[]") // "Buy milk"
 ```
 
 Not quite what you want. The `FormData` API is similar in some ways to the `Headers` API and the `URLSearchParams` API. They have entries that can have multiple values with the same name. So, if you wanted to represent those todos in a form, you could do something like this:
 
 ```html
 <form>
-	<input type="text" name="todo" value="Buy milk" />
-	<input type="text" name="todo" value="Buy eggs" />
-	<input type="text" name="todo" value="Wash dishes" />
+    <input type="text" name="todo" value="Buy milk" />
+    <input type="text" name="todo" value="Buy eggs" />
+    <input type="text" name="todo" value="Wash dishes" />
 </form>
 ```
 
 ```tsx
 const formData = new FormData(form)
-formData.getAll('todo') // ["Buy milk", "Buy eggs", "Wash dishes"]
+formData.getAll("todo") // ["Buy milk", "Buy eggs", "Wash dishes"]
 ```
 
 ```tsx
 // this is just a visualization, form data is not an array of arrays.
 const formData = [
-	['todo', 'Buy milk'],
-	['todo', 'Buy eggs'],
-	['todo', 'Wash dishes'],
+    ["todo", "Buy milk"],
+    ["todo", "Buy eggs"],
+    ["todo", "Wash dishes"],
 ]
 ```
 
@@ -3385,10 +3405,10 @@ So this is not allowed:
 
 ```html
 <form>
-	<form>
-		<input type="text" name="todo" value="Buy milk" />
-		<input type="checkbox" name="completed" checked />
-	</form>
+    <form>
+        <input type="text" name="todo" value="Buy milk" />
+        <input type="checkbox" name="completed" checked />
+    </form>
 </form>
 ```
 
@@ -3396,12 +3416,12 @@ This is not allowed. This has unfortunate implications for how you might represe
 
 ```html
 <form>
-	<input type="text" name="todo" value="Buy milk" />
-	<input type="checkbox" name="completed" checked />
-	<input type="text" name="todo" value="Buy eggs" />
-	<input type="checkbox" name="completed" />
-	<input type="text" name="todo" value="Wash dishes" />
-	<input type="checkbox" name="completed" checked />
+    <input type="text" name="todo" value="Buy milk" />
+    <input type="checkbox" name="completed" checked />
+    <input type="text" name="todo" value="Buy eggs" />
+    <input type="checkbox" name="completed" />
+    <input type="text" name="todo" value="Wash dishes" />
+    <input type="checkbox" name="completed" checked />
 </form>
 ```
 
@@ -3410,11 +3430,11 @@ If we visualize this as an array of key/value pairs, it would look like this:
 ```tsx
 // this is just a visualization, form data is not an array of arrays.
 const formData = [
-	['todo', 'Buy milk'],
-	['completed', 'on'],
-	['todo', 'Buy eggs'],
-	['todo', 'Wash dishes'],
-	['completed', 'on'],
+    ["todo", "Buy milk"],
+    ["completed", "on"],
+    ["todo", "Buy eggs"],
+    ["todo", "Wash dishes"],
+    ["completed", "on"],
 ]
 ```
 
@@ -3424,12 +3444,12 @@ So we can't really rely on the order of elements in the form data to convert thi
 
 ```html
 <form>
-	<input type="text" name="todo[0].content" value="Buy milk" />
-	<input type="checkbox" name="todo[0].complete" checked />
-	<input type="text" name="todo[1].content" value="Buy eggs" />
-	<input type="checkbox" name="todo[1].complete" />
-	<input type="text" name="todo[2].content" value="Wash dishes" />
-	<input type="checkbox" name="todo[2].complete" checked />
+    <input type="text" name="todo[0].content" value="Buy milk" />
+    <input type="checkbox" name="todo[0].complete" checked />
+    <input type="text" name="todo[1].content" value="Buy eggs" />
+    <input type="checkbox" name="todo[1].complete" />
+    <input type="text" name="todo[2].content" value="Wash dishes" />
+    <input type="checkbox" name="todo[2].complete" checked />
 </form>
 ```
 
@@ -3438,11 +3458,11 @@ Then we can visualize this as an array of key/value pairs:
 ```tsx
 // this is just a visualization, form data is not an array of arrays.
 const formData = [
-	['todo[0].content', 'Buy milk'],
-	['todo[0].complete', 'on'],
-	['todo[1].content', 'Buy eggs'],
-	['todo[2].content', 'Wash dishes'],
-	['todo[2].complete', 'on'],
+    ["todo[0].content", "Buy milk"],
+    ["todo[0].complete", "on"],
+    ["todo[1].content", "Buy eggs"],
+    ["todo[2].content", "Wash dishes"],
+    ["todo[2].complete", "on"],
 ]
 ```
 
@@ -3450,11 +3470,11 @@ Then, we can use some fancy JS to convert this into a more useful object:
 
 ```tsx
 const data = {
-	todos: [
-		{ content: 'Buy milk', complete: true },
-		{ content: 'Buy eggs', complete: false },
-		{ content: 'Wash dishes', complete: true },
-	],
+    todos: [
+        { content: "Buy milk", complete: true },
+        { content: "Buy eggs", complete: false },
+        { content: "Wash dishes", complete: true },
+    ],
 }
 ```
 
@@ -3472,24 +3492,24 @@ Here's a quick example of this:
 
 ```tsx
 // example inspired from the Conform docs
-import { useForm, useFieldset, conform } from '@conform-to/react'
+import { useForm, useFieldset, conform } from "@conform-to/react"
 
 function Example() {
-	const [form, fields] = useForm<Schema>({
-		// ... config stuff including the schema
-	})
-	const addressFields = useFieldset(form.ref, fields.address)
+    const [form, fields] = useForm<Schema>({
+        // ... config stuff including the schema
+    })
+    const addressFields = useFieldset(form.ref, fields.address)
 
-	return (
-		<form {...form.props}>
-			<fieldset>
-				<input {...conform.input(addressFields.street)} />
-				<input {...conform.input(addressFields.zipcode)} />
-				<input {...conform.input(addressFields.city)} />
-				<input {...conform.input(addressFields.country)} />
-			</fieldset>
-		</form>
-	)
+    return (
+        <form {...form.props}>
+            <fieldset>
+                <input {...conform.input(addressFields.street)} />
+                <input {...conform.input(addressFields.zipcode)} />
+                <input {...conform.input(addressFields.city)} />
+                <input {...conform.input(addressFields.country)} />
+            </fieldset>
+        </form>
+    )
 }
 ```
 
@@ -3497,12 +3517,12 @@ For the `name` attribute, Conform would use `address.street`, etc. But this is a
 
 ```tsx
 const data = {
-	address: {
-		street: '123 Main St',
-		zipcode: '12345',
-		city: 'New York',
-		country: 'USA',
-	},
+    address: {
+        street: "123 Main St",
+        zipcode: "12345",
+        city: "New York",
+        country: "USA",
+    },
 }
 ```
 
@@ -3512,26 +3532,26 @@ For arrays, you'll use Conform's `useFieldList` hook:
 
 ```tsx
 // example inspired from the Conform docs
-import { useForm, useFieldList, conform } from '@conform-to/react'
+import { useForm, useFieldList, conform } from "@conform-to/react"
 
 function Example() {
-	const [form, fields] = useForm({
-		// ... config stuff including the schema
-	})
-	const list = useFieldList(form.ref, fields.tasks)
+    const [form, fields] = useForm({
+        // ... config stuff including the schema
+    })
+    const list = useFieldList(form.ref, fields.tasks)
 
-	return (
-		<form {...form.props}>
-			<ul>
-				{list.map(task => (
-					<li key={task.key}>
-						{/* Set the name to `task[0]`, `tasks[1]` etc */}
-						<input {...conform.input(task)} />
-					</li>
-				))}
-			</ul>
-		</form>
-	)
+    return (
+        <form {...form.props}>
+            <ul>
+                {list.map((task) => (
+                    <li key={task.key}>
+                        {/* Set the name to `task[0]`, `tasks[1]` etc */}
+                        <input {...conform.input(task)} />
+                    </li>
+                ))}
+            </ul>
+        </form>
+    )
 }
 ```
 
@@ -3539,7 +3559,7 @@ When that gets parsed, you'll wind up with an array:
 
 ```jsx
 const data = {
-	tasks: ['Buy milk', 'Buy eggs', 'Wash dishes'],
+    tasks: ["Buy milk", "Buy eggs", "Wash dishes"],
 }
 ```
 
@@ -3547,30 +3567,39 @@ With arrays, it can be tricky because you often want to allow the user to add an
 
 ```tsx
 // example inspired from the Conform docs
-import { useForm, useFieldList, conform, list } from '@conform-to/react'
+import {
+    useForm,
+    useFieldList,
+    conform,
+    list,
+} from "@conform-to/react"
 
 export default function Todos() {
-	const [form, fields] = useForm({
-		// ... config stuff including the schema
-	})
-	const taskList = useFieldList(form.ref, fields.tasks)
+    const [form, fields] = useForm({
+        // ... config stuff including the schema
+    })
+    const taskList = useFieldList(form.ref, fields.tasks)
 
-	return (
-		<form {...form.props}>
-			<ul>
-				{taskList.map((task, index) => (
-					<li key={task.key}>
-						<input {...conform.input(task)} />
-						<button {...list.remove(tasks.name, { index })}>Delete</button>
-					</li>
-				))}
-			</ul>
-			<div>
-				<button {...list.insert(tasks.name)}>Add task</button>
-			</div>
-			<button>Save</button>
-		</form>
-	)
+    return (
+        <form {...form.props}>
+            <ul>
+                {taskList.map((task, index) => (
+                    <li key={task.key}>
+                        <input {...conform.input(task)} />
+                        <button
+                            {...list.remove(tasks.name, { index })}
+                        >
+                            Delete
+                        </button>
+                    </li>
+                ))}
+            </ul>
+            <div>
+                <button {...list.insert(tasks.name)}>Add task</button>
+            </div>
+            <button>Save</button>
+        </form>
+    )
 }
 ```
 
@@ -3578,9 +3607,9 @@ What's amazingly awesomely cool about this is that it actually works `without Ja
 
 As a reminder from exercise 3, conform v1 was released after and this lesson is also impacted by breaking change updates. This workshop material still uses pre-1.0 conform. You can watch the video in exercise 3 for more details on what changed.
 
-- [📜 FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData)
-- [📜 Conform Nested Objects and Arrays](https://conform.guide/complex-structures)
-- [📜 Conform Intent Button](https://conform.guide/intent-button)
+-   [📜 FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData)
+-   [📜 Conform Nested Objects and Arrays](https://conform.guide/complex-structures)
+-   [📜 Conform Intent Button](https://conform.guide/intent-button)
 
 ### 2.5.1 Nested Object
 
@@ -3591,35 +3620,35 @@ However, because forms don't support nested objects, we'll need to use a utility
 ```tsx
 // example inspired from the Conform docs
 import {
-	useForm,
-	useFieldset,
-	conform,
-	type FieldConfig,
-} from '@conform-to/react'
+    useForm,
+    useFieldset,
+    conform,
+    type FieldConfig,
+} from "@conform-to/react"
 
 function Example() {
-	const [form, fields] = useForm<Schema>({
-		// ... config stuff including the schema
-	})
+    const [form, fields] = useForm<Schema>({
+        // ... config stuff including the schema
+    })
 
-	return (
-		<form {...form.props}>
-			<AddressFields config={fields.address} />
-		</form>
-	)
+    return (
+        <form {...form.props}>
+            <AddressFields config={fields.address} />
+        </form>
+    )
 }
 
 function AddressFields({ config }: { config: FieldConfig<Address> }) {
-	const ref = useRef<HTMLFieldSetElement>(null)
-	const fields = useFieldset(ref, config)
-	return (
-		<fieldset ref={ref}>
-			<input {...conform.input(fields.street)} />
-			<input {...conform.input(fields.zipcode)} />
-			<input {...conform.input(fields.city)} />
-			<input {...conform.input(fields.country)} />
-		</fieldset>
-	)
+    const ref = useRef<HTMLFieldSetElement>(null)
+    const fields = useFieldset(ref, config)
+    return (
+        <fieldset ref={ref}>
+            <input {...conform.input(fields.street)} />
+            <input {...conform.input(fields.zipcode)} />
+            <input {...conform.input(fields.city)} />
+            <input {...conform.input(fields.country)} />
+        </fieldset>
+    )
 }
 ```
 
@@ -3627,12 +3656,16 @@ We'll also get our type by using Zod's inference utility:
 
 ```tsx
 const RocketSchema = z.object({
-	// ...
+    // ...
 })
 type RocketType = z.infer<typeof RocketSchema>
 
-function RocketFields({ config }: { config: FieldConfig<RocketType> }) {
-	// ...
+function RocketFields({
+    config,
+}: {
+    config: FieldConfig<RocketType>
+}) {
+    // ...
 }
 ```
 
@@ -3640,25 +3673,25 @@ So, fundamentally, we want to make this change:
 
 ```tsx
 {
-	title: string
-	content: string
-	imageId: string
-	file: File
-	altText: string
-	image: {
-		id: string
-		file: File
-		altText: string
-	}
+    title: string
+    content: string
+    imageId: string
+    file: File
+    altText: string
+    image: {
+        id: string
+        file: File
+        altText: string
+    }
 }
 ```
 
 And we want that hooked up to our form. That should be enough to get you going!
 
-- [📜 `useFieldset`](https://conform.guide/api/react#usefieldset)
-- [📜 Conform Complex Structures](https://conform.guide/complex-structures)
-- [📜 Zod Type Inference](https://zod.dev/?id=type-inference)
-- [📜 React ref](https://react.dev/reference/react/useRef)
+-   [📜 `useFieldset`](https://conform.guide/api/react#usefieldset)
+-   [📜 Conform Complex Structures](https://conform.guide/complex-structures)
+-   [📜 Zod Type Inference](https://zod.dev/?id=type-inference)
+-   [📜 React ref](https://react.dev/reference/react/useRef)
 
 ### Summary
 
@@ -3676,9 +3709,9 @@ But did you notice that our database allows notes to have more than a single ima
 
 Modern web applications are often bombarded with automated spam bots that try to submit forms with irrelevant or harmful content. There are a number of reasons they do this:
 
-- To post their links to your site, hoping to increase their search engine ranking
-- To test your site for vulnerabilities
-- To help distribute malware
+-   To post their links to your site, hoping to increase their search engine ranking
+-   To test your site for vulnerabilities
+-   To help distribute malware
 
 This not only degrades the user experience but can also strain server resources and contaminate databases with unwanted data.
 
@@ -3688,35 +3721,35 @@ A honeypot field is a form input that's designed to be invisible to genuine huma
 
 Another useful thing you can do along with the honeypot field is to add a field that will allow you to determine when the form was generated. So if the form is submitted too quickly, you can be pretty confident that it's a bot. This is more tricky than it sounds because bots could easily change the value of that field, so you do need to encrypt the value. But if you manage that, it's a great way to catch bots.
 
-To implement a honeypot field, you'd typically add an input field to your form and then hide it using CSS. It's crucial that this field is hidden in a way that humans can't use, but a bot will. It's also a good idea to give the honeypot field a name that sounds enticing to bots, like "url" or "email", which can make it even more likely they'll fill it in. The trick is making sure the field doesn't conflict with any other fields in your form. So you can sometimes append __confirm or something similar to the field to keep it unique and the bot will still fill it in.
+To implement a honeypot field, you'd typically add an input field to your form and then hide it using CSS. It's crucial that this field is hidden in a way that humans can't use, but a bot will. It's also a good idea to give the honeypot field a name that sounds enticing to bots, like "url" or "email", which can make it even more likely they'll fill it in. The trick is making sure the field doesn't conflict with any other fields in your form. So you can sometimes append \_\_confirm or something similar to the field to keep it unique and the bot will still fill it in.
 
 For example:
 
 ```tsx
 <form>
-	<label>
-		Name:
-		<input type="text" name="name" />
-	</label>
-	<label>
-		Email:
-		<input type="email" name="email" />
-	</label>
-	<label>
-		Website:
-		<input type="text" name="url" />
-	</label>
-	<label>
-		Message:
-		<textarea name="message"></textarea>
-	</label>
-	<div style="display: none;">
-		<label>
-			Do not fill out this field
-			<input type="text" name="name__confirm" />
-		</label>
-	</div>
-	<button type="submit">Send</button>
+    <label>
+        Name:
+        <input type="text" name="name" />
+    </label>
+    <label>
+        Email:
+        <input type="email" name="email" />
+    </label>
+    <label>
+        Website:
+        <input type="text" name="url" />
+    </label>
+    <label>
+        Message:
+        <textarea name="message"></textarea>
+    </label>
+    <div style="display: none;">
+        <label>
+            Do not fill out this field
+            <input type="text" name="name__confirm" />
+        </label>
+    </div>
+    <button type="submit">Send</button>
 </form>
 ```
 
@@ -3772,7 +3805,7 @@ const honeyProps = honeypot.getInputProps()
 honeypot.check(formData)
 ```
 
-- 📜 [remix-utils Honeypot](https://github.com/sergiodxa/remix-utils#form-honeypot)
+-   📜 [remix-utils Honeypot](https://github.com/sergiodxa/remix-utils#form-honeypot)
 
 ### 2.6.1 Basic Honeypot
 
@@ -3795,13 +3828,13 @@ The form only actually redirects to `/` for right now. If the honeypot field is 
 First you're going to need to create `app/utils/honeypot.server.ts` to create a honeypot instance. For example:
 
 ```tsx
-import { Honeypot } from 'remix-utils/honeypot/server'
+import { Honeypot } from "remix-utils/honeypot/server"
 
 export const honeypot = new Honeypot({
-	validFromFieldName: 'validFrom',
-	encryptionSeed: process.env.HONEY_POT_ENCRYPTION_SEED,
-	nameFieldName: 'name',
-	randomizeNameFieldName: true,
+    validFromFieldName: "validFrom",
+    encryptionSeed: process.env.HONEY_POT_ENCRYPTION_SEED,
+    nameFieldName: "name",
+    randomizeNameFieldName: true,
 })
 ```
 
@@ -3811,12 +3844,14 @@ Once you have that set up, you can use it in the `action` of `app/routes/_auth+/
 
 ```tsx
 try {
-	honeypot.check(formData)
+    honeypot.check(formData)
 } catch (error) {
-	if (error instanceof SpamError) {
-		throw new Response('Form not submitted properly', { status: 400 })
-	}
-	throw error
+    if (error instanceof SpamError) {
+        throw new Response("Form not submitted properly", {
+            status: 400,
+        })
+    }
+    throw error
 }
 ```
 
@@ -3875,10 +3910,13 @@ So we're going to place it in our` .gitignore`d `.env` file which we're loading 
 CSRF, which stands for Cross-Site Request Forgery, is a type of web security vulnerability where an attacker tricks a victim into performing actions they did not intend to on a web application where they're authenticated. Imagine being logged into your bank's website and another tab manipulates that authenticated session to transfer funds without your knowledge or consent. It could be as simple as:
 
 ```html
-<form method="POST" action="https://example.com/my-great-bank/transfer-funds">
-	<input type="hidden" name="amount" value="1000000" />
-	<input type="hidden" name="to" value="123456789" />
-	<button>Click here to win a free iPad!</button>
+<form
+    method="POST"
+    action="https://example.com/my-great-bank/transfer-funds"
+>
+    <input type="hidden" name="amount" value="1000000" />
+    <input type="hidden" name="to" value="123456789" />
+    <button>Click here to win a free iPad!</button>
 </form>
 ```
 
@@ -3894,9 +3932,9 @@ That's a CSRF attack in action. The attack exploits the trust a site has in the 
 To fundamentally side-step CSRF vulnerabilities, there are a few foundational principles:
 
 1.  **Use Anti-CSRF Tokens**: These are unique tokens generated by the server and sent to the client during session establishment. Every subsequent request that modifies any data should carry this token. If a request doesn't have the token, it will be denied. Since the attacker's site won't know this unique and randomly generated token, they won't be able to make it through.
-2. **SameSite Cookies**: Modern browsers support the SameSite attribute for cookies. Setting it to `Strict` or `Lax` will ensure that the cookie isn't sent with cross-site requests, offering protection against CSRF.
-3. **Check the Origin Header**: Servers can check the Origin and Referer headers of incoming requests. If the request's origin isn't what the server expects, it can reject the request.
-4. **Always Logout**: Encourage users to log out of sessions when they're done, especially on public or shared computers. This reduces the window of opportunity for an attacker.
+2.  **SameSite Cookies**: Modern browsers support the SameSite attribute for cookies. Setting it to `Strict` or `Lax` will ensure that the cookie isn't sent with cross-site requests, offering protection against CSRF.
+3.  **Check the Origin Header**: Servers can check the Origin and Referer headers of incoming requests. If the request's origin isn't what the server expects, it can reject the request.
+4.  **Always Logout**: Encourage users to log out of sessions when they're done, especially on public or shared computers. This reduces the window of opportunity for an attacker.
 
 We'll get to the Cookies solution in a future workshop. But even with cookies in place, there are some requests that don't require cookies so it's a good general practice to apply CSRF protection to all requests that modify data.
 
@@ -3906,21 +3944,21 @@ Thanks to our honeypot implementation which requires a "valid from" field, we ac
 
 It actually takes a fair bit of work to generate the CSRF token and send it to the client. Luckily, we have a library that can handle this for us called [`remix-utils`](https://npm.im/remix-utils)! Remix utils includes a number of utilities to facilitate this process.
 
-- 📜 [remix-utils CSRF](https://github.com/sergiodxa/remix-utils#csrf)
+-   📜 [remix-utils CSRF](https://github.com/sergiodxa/remix-utils#csrf)
 
 ### 2.7.1 CSRF Setup
 
 👨‍💼 We've got to get some things set up with the `remix-utils` CSRF utilities before we can actually start protecting our forms. We'll dive deeper into cookies in the [Web Auth](https://auth.epicweb.dev/) workshop later, but you do need to set a signed cookie in the user's browser so you can use [Remix's `createCookie`](https://remix.run/docs/en/main/utils/cookies#createcookie) to help with that.
 
 ```tsx
-import { createCookie } from '@remix-run/node'
+import { createCookie } from "@remix-run/node"
 
-const cookie = createCookie('csrf', {
-	path: '/',
-	httpOnly: true,
-	secure: process.env.NODE_ENV === 'production',
-	sameSite: 'lax',
-	secrets: process.env.SESSION_SECRET.split(','),
+const cookie = createCookie("csrf", {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    secrets: process.env.SESSION_SECRET.split(","),
 })
 ```
 
@@ -3937,7 +3975,7 @@ to this stuff in more depth in the Web Auth workshop.
 utility;
 
 ```tsx
-import { CSRF } from 'remix-utils/csrf/server'
+import { CSRF } from "remix-utils/csrf/server"
 
 // ...
 
@@ -3948,7 +3986,7 @@ Now, we need to get the user's unique token in our UI for our forms and in the
 user's cookie so we can validate it on the server. We'll do that
 in <InlineFile file="app/root.tsx" />. 🐨 See you there!
 
-- [📜 Remix `createCookie`](https://remix.run/docs/en/main/utils/cookies#createcookie)
+-   [📜 Remix `createCookie`](https://remix.run/docs/en/main/utils/cookies#createcookie)
 
 #### Conclusion
 
@@ -3975,22 +4013,22 @@ So the next step is to get that into our form and verify it to prove that the fo
 👨‍💼 First we're going to need to update our root component to include the CSRF token in context using the `remix-utils` `AuthenticityTokenProvider` component.
 
 ```tsx
-import { AuthenticityTokenProvider } from 'remix-utils/csrf/react'
+import { AuthenticityTokenProvider } from "remix-utils/csrf/react"
 
 // ...
 
 return (
-	<AuthenticityTokenProvider token={data.csrfToken}>
-		<App />
-	</AuthenticityTokenProvider>
+    <AuthenticityTokenProvider token={data.csrfToken}>
+        <App />
+    </AuthenticityTokenProvider>
 )
 ```
 
 From there, all our forms just need a `<AuthenticityTokenInput />` component from `remix-utils/csrf/react` in the UI, and then we can validate the csrf in our actions and we'll be in business:
 
 ```tsx
-import { CSRFError } from 'remix-utils/csrf/server' // <-- for the extra credit...
-import { csrf } from '#app/utils/csrf.server.ts'
+import { CSRFError } from "remix-utils/csrf/server" // <-- for the extra credit...
+import { csrf } from "#app/utils/csrf.server.ts"
 
 // ...
 
@@ -4024,44 +4062,44 @@ Let's look at a scenario: the `/signup` endpoint. Signing up typically involves 
 We're using express for our server and there's a great tool called `express-rate-limit` that makes it easy to add support for rate limiting to our application:
 
 ```tsx
-import rateLimit from 'express-rate-limit'
+import rateLimit from "express-rate-limit"
 
 // When we're testing, we don't want rate limiting to get in our way. So, we'll
 // increase our rate limit thresholds.
 const limitMultiple = process.env.TESTING ? 10_000 : 1
 
 const rateLimitDefault = {
-	windowMs: 60 * 1000, // 1 minute
-	limit: 1000 * limitMultiple, // Adjust the limit based on our environment
-	standardHeaders: true, // Send standard headers with limit information
-	legacyHeaders: false, // Don't bother sending legacy headers
+    windowMs: 60 * 1000, // 1 minute
+    limit: 1000 * limitMultiple, // Adjust the limit based on our environment
+    standardHeaders: true, // Send standard headers with limit information
+    legacyHeaders: false, // Don't bother sending legacy headers
 }
 
 // The most strict rate limit, great for routes like /signup
 const strongestRateLimit = rateLimit({
-	...rateLimitDefault,
-	limit: 10 * limitMultiple,
+    ...rateLimitDefault,
+    limit: 10 * limitMultiple,
 })
 
 // A stricter rate limit for general POST requests
 const strongRateLimit = rateLimit({
-	...rateLimitDefault,
-	limit: 100 * limitMultiple,
+    ...rateLimitDefault,
+    limit: 100 * limitMultiple,
 })
 
 // A general rate limit for our application
 const generalRateLimit = rateLimit(rateLimitDefault)
 
 app.use((req, res, next) => {
-	const strongPaths = ['/signup']
-	if (req.method !== 'GET' && req.method !== 'HEAD') {
-		if (strongPaths.some(p => req.path.includes(p))) {
-			return strongestRateLimit(req, res, next)
-		}
-		return strongRateLimit(req, res, next)
-	}
+    const strongPaths = ["/signup"]
+    if (req.method !== "GET" && req.method !== "HEAD") {
+        if (strongPaths.some((p) => req.path.includes(p))) {
+            return strongestRateLimit(req, res, next)
+        }
+        return strongRateLimit(req, res, next)
+    }
 
-	return generalRateLimit(req, res, next)
+    return generalRateLimit(req, res, next)
 })
 ```
 
@@ -4072,14 +4110,14 @@ Lastly, as you can see, we're taking into account our environment when configuri
 👨‍💼 Let's get started with some basic rate limiting using express-rate-limit. Here's a quick primer on its API:
 
 ```tsx
-import { rateLimit } from 'express-rate-limit'
+import { rateLimit } from "express-rate-limit"
 
 const limiter = rateLimit({
-	windowMs: 15 * 60 * 1000, // 15 minutes
-	limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-	standardHeaders: true, // Use standard draft-6 headers of `RateLimit-Policy` `RateLimit-Limit`, and `RateLimit-Remaining`
-	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-	// store: ... , // Use an external store for more precise rate limiting
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    standardHeaders: true, // Use standard draft-6 headers of `RateLimit-Policy` `RateLimit-Limit`, and `RateLimit-Remaining`
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    // store: ... , // Use an external store for more precise rate limiting
 })
 
 // Apply the rate limiting middleware to all requests
@@ -4092,7 +4130,7 @@ So let's open up and get some basic middleware for this set up.
 
 Oh, and you're going to want to think about our testing environment... We want to keep the middleware in play, but we just want to increase the limits to account for the fact that a robot is actually submitting things faster than humans will be expected to 😅
 
-- 📜 [`express-rate-limit`](https://www.npmjs.com/package/express-rate-limit)
+-   📜 [`express-rate-limit`](https://www.npmjs.com/package/express-rate-limit)
 
 #### Conclusion
 
@@ -4136,8 +4174,8 @@ You'll be running a lot of terminal commands in this workshop. These terminal co
 
 #### 🦉 Prisma Tips:
 
-- If your development database ever gets in a bad state, you can always delete the database file itself and prisma will recreate it for you next time you run something. (Note that you'll lose all your data if you do this, but we're working with fake data anyway so it's fine... Just don't do this with your production database 😅).
-- Install [the VSCode extension for Prisma](https://marketplace.visualstudio.com/items?itemName=Prisma.prisma) for syntax highlighting, formatting, and linting of your Prisma Schema
+-   If your development database ever gets in a bad state, you can always delete the database file itself and prisma will recreate it for you next time you run something. (Note that you'll lose all your data if you do this, but we're working with fake data anyway so it's fine... Just don't do this with your production database 😅).
+-   Install [the VSCode extension for Prisma](https://marketplace.visualstudio.com/items?itemName=Prisma.prisma) for syntax highlighting, formatting, and linting of your Prisma Schema
 
 Over time, some things may change in the workshop material from the videos you watch. You can learn about these changes in the `CHANGELOG.md` file of the repo.
 
@@ -4180,12 +4218,12 @@ This just has a few bits of configuration in it for now. If you'd like to dive i
 
 🐨 Add user to the schema. We have the following fields:
 
-- `id` should be a string, serve as the unique identifier for each record in the `User` model, and its default value should be generated by the `cuid` function ensuring uniqueness and collision resistance (`@default(cuid())`).
-- `email` needs to be a string and should be unique to prevent users from creating multiple accounts with the same email address.
-- `username` should be a string and needs to be unique to ensure every user has a distinct username.
-- `name` is a string that represents the name of the user. It is an optional field as indicated by the question mark (?), so it can be null.
-- `createdAt` is a `DateTime` field that defaults to the current timestamp (`@default(now())`) when a new user record is created.
-- `updatedAt` is a `DateTime` field that updates to the current timestamp whenever there is any update to a specific user record. This is handled automatically by Prisma with the `@updatedAt` attribute.
+-   `id` should be a string, serve as the unique identifier for each record in the `User` model, and its default value should be generated by the `cuid` function ensuring uniqueness and collision resistance (`@default(cuid())`).
+-   `email` needs to be a string and should be unique to prevent users from creating multiple accounts with the same email address.
+-   `username` should be a string and needs to be unique to ensure every user has a distinct username.
+-   `name` is a string that represents the name of the user. It is an optional field as indicated by the question mark (?), so it can be null.
+-   `createdAt` is a `DateTime` field that defaults to the current timestamp (`@default(now())`) when a new user record is created.
+-   `updatedAt` is a `DateTime` field that updates to the current timestamp whenever there is any update to a specific user record. This is handled automatically by Prisma with the `@updatedAt` attribute.
 
 Check [the Prisma Schema](https://pris.ly/d/prisma-schema) docs for examples of the schema syntax.
 
@@ -4219,13 +4257,13 @@ npx prisma studio
 
 You should have the User model with the fields we defined in the schema. You should also be able to create new users and see them in the database. Go ahead and create a new user. You can use the following values:
 
-- `email`: `kody@kcd.dev`
-- `username`: `kody`
-- `name`: `Kody`
+-   `email`: `kody@kcd.dev`
+-   `username`: `kody`
+-   `name`: `Kody`
 
 Save that and you should have a new user in the database! Great job! You've initialized your SQLite database with Prisma.
 
-- 📜 [Prisma Schema Reference](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference)
+-   📜 [Prisma Schema Reference](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference)
 
 ## 3.2 Data Relationships
 
@@ -4281,6 +4319,6 @@ Save that and you should have a new user in the database! Great job! You've init
 
 ## 3.9 Query Optimization
 
-### 3.9.1 Foreign Keys
+### 3.9.1 Foreign Keysg
 
 ### 3.9.2 Multi-Column Index
