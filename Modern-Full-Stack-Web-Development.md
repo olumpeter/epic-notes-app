@@ -4898,13 +4898,214 @@ const things = Array.from({ length: numberOfThings }, () => {
 })
 ```
 
-Tip: if the thing you're doing is async, you can wrap it in Promise.all:
+Tip: if the thing you're doing is async, you can wrap it in `Promise.all`:
+
+```tsx
+const things = await Promise.all(
+    Array.from({ length: numberOfThings }, async () => {
+        // create your async thing...
+    })
+)
+```
+
+#### Unique Data
+
+Another thing you'll want to be careful of when generating data is you want to avoid creating duplicate data for unique fields. For example, if `email` is a unique field, you'll need to make sure you don't generate the same email address twice. Faker's mechanism for doing this is deprecated in favor of [`enforce-unique`](https://www.npmjs.com/package/enforce-unique):
+
+```tsx
+const uniqueEmailEnforcer = new UniqueEnforcer()
+
+const email = uniqueEmailEnforcer.enforce(() =>
+    faker.internet.email()
+)
+```
+
+This will keep track of the generated emails and call the function again if it finds a duplicate.
+
+#### Schema Validation
+
+Finally, one more thing you'll want to consider when generating fake data is that the data you generate matches your schema requirements. The seed script isn't necessarily the place to test your application's resilience to bad data (you should have tests for that).
+
+For example, let's say you have a limit of 50 characters for the title of a Review. You'll want to make sure you don't generate a title that's too long. For example:
+
+```tsx
+const reviewTitle = faker.lorem.words(10).slice(0, 50)
+```
+
+Balancing realistic with practical is definitely in force here.
 
 ### 3.5.1 Generated Data
 
+👨‍💼 It's nice to have our hard-coded user that we can rely on during development, but it would be nice to have more data, so let's generate it!
+
+For this first exercise, use `faker` to generate fake data for one additional user.
+
+The emoji should help you out here. Also, you should probably keep the Faker API Reference documentation open.
+
+🐨 When you're done, seed the database:
+
+```sh
+npx prisma db seed
+```
+
+🐨 And then open up the Prisma Studio to see your generated data:
+
+```sh
+npx prisma studio
+```
+
+-   [📜 Faker API Reference](https://fakerjs.dev/api/)
+
+#### Conclusion
+
+👨‍💼 Great, now every time we run the seed script we'll get new data. But we're not quite generating a lot of data yet. Let's fix that.
+
 ### 3.5.2 Dynamic Data
 
+🧝‍♂️ I've fixed things up a little bit and added some organization for us. Just so you know. I've also created a couple utility functions for creating users to make that data a tad bit more realistic and creating images that we've already got in our tests/fixtures/images directory.
+
+Here's a quick example of how my img utility helps us create images:
+
+```tsx
+await prisma.user.create({
+    data: {
+        // stuff here
+        image: {
+            create: {
+                altText: `someone at the end of a cry session who's starting to feel a little better.`,
+                file: {
+                    create: {
+                        contentType: "image/png",
+                        blob: await fs.promises.readFile(
+                            "./tests/fixtures/images/notes/9.png"
+                        ),
+                    },
+                },
+            },
+            create: await img({
+                altText: `someone at the end of a cry session who's starting to feel a little better.`,
+                filepath: "./tests/fixtures/images/notes/9.png",
+            }),
+        },
+    },
+})
+```
+
+Additionally, I've also pre-loaded all the images for you, so you can simplify it even further if you want:
+
+```tsx
+await prisma.user.create({
+	data: {
+		// stuff here
+		image: {
+			create: await img({
+				altText: `someone at the end of a cry session who's starting to feel a little better.`,
+				filepath: './tests/fixtures/images/notes/9.png',
+			}),
+		}
+		image: { create: noteImages[9] },
+	},
+})
+```
+
+I also moved things around a bit generally to be more organized and ready for your exercise. No need to thank me. I'm just doing my job. 😎 (🦉 but you really should thank your co-workers because it's a nice thing to do).
+
+👨‍💼 **Thanks** Kellie! Utilities like this are pretty critical for generating data that's specific to our application. Alright, so we're going to need you to generate a lot more data. We'll have the emoji in there to help guide you through this a bit. As a reminder, here's one way you could do this
+
+```tsx
+const things = await Promise.all(
+    Array.from({ length: numberOfThings }, async () => {
+        // create your async thing...
+    })
+)
+```
+
+And you can use Faker to create random numbers of things with:
+
+```tsx
+const things = await Promise.all(
+    Array.from(
+        { length: faker.number.int({ min: 0, max: 5 }) },
+        async () => {
+            // create your async thing...
+        }
+    )
+)
+```
+
+It's very possible you will _hate_ the level of expression nesting going on here. That is totally fine. If you'd rather go with a more imperative style of multiple statements and loops, that's totally fine. I personally prefer the nesting, but there's more than one way to do this. SQLite doesn't support `createMany`, so that's why we have to do a single `create` call per record we want to insert. UPDATE: With Prisma 5.12.0, you can now use `createMany` with SQLite. 🎉
+
+🐨 Once you're happy with your seed script, let's run it!
+
+```sh
+npx prisma db seed
+```
+
+🐨 And then open up the Prisma Studio to see your generated data:
+
+```sh
+npx prisma studio
+```
+
+#### Conclusion
+
+👨‍💼 Great! Now we can easily adjust how much data we're inserting into our database for local testing. But there's still a problem. It won't happen often, but we have a unique constraint on a few fields and they could definitely clash.
+
+Let's deal with that.
+
 ### 3.5.3 Unique Constraints
+
+👨‍💼 We have a `@unique` constraint on several fields. The `id` is fine because that's either generated by the database or hard-coded. But the `username` and `email` fields are generated by `faker` which can technically generate the same values twice in a row. Here's how we're doing it currently:
+
+```tsx
+export function createUser() {
+    const firstName = faker.person.firstName()
+    const lastName = faker.person.lastName()
+    const username = faker.internet.userName({
+        firstName: firstName.toLowerCase(),
+        lastName: lastName.toLowerCase(),
+    })
+    return {
+        username,
+        name: `${firstName} ${lastName}`,
+        email: `${username}@example.com`,
+    }
+}
+```
+
+If faker generated the same first and last name then we'd be in trouble. Our seed script would fail to create a user.
+
+So let's fix that with [`enforce-unique`](https://www.npmjs.com/package/enforce-unique). Here's an example of how to use this:
+
+```tsx
+const uniqueEmailEnforcer = new UniqueEnforcer()
+
+const email = uniqueEmailEnforcer.enforce(() =>
+    faker.internet.email()
+)
+```
+
+On top of that, it's possible the username is too long or the wrong case. We're going to want to limit usernames in our app to be lower case, only 20 characters, and alphanumeric. So we'll want to do something about that as well.
+
+Can you deal with these things? The emoji should help guide you through this.
+
+🐨 When you're ready to go, run the seed script:
+
+```sh
+npx prisma db seed
+```
+
+🐨 And then open up the Prisma Studio to see your generated data:
+
+```sh
+npx prisma studio
+```
+
+#### Conclusion
+
+👨‍💼 Great work. Thank you for doing that. Our seed script is now pretty awesome!
+
+💯 For extra credit, if you've got some time, go ahead and move some of the hard-coded notes data for Kody from to . If you don't, 🧝‍♂️ Kellie will do it for you.
 
 ## 3.6 Querying Data
 
