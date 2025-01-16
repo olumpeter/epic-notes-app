@@ -6,32 +6,22 @@ import {
     useLoaderData,
 } from "@remix-run/react"
 import { GeneralErrorBoundary } from "~/components/error-boundary"
-import { db } from "~/utils/db.server"
+import { prisma } from "~/utils/db.server"
 import { cn, getUserImgSrc, invariantResponse } from "~/utils/misc"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    const owner = db.user.findFirst({
-        where: {
-            username: {
-                equals: params.username,
-            },
+    const owner = await prisma.user.findUnique({
+        where: { username: params.username },
+        select: {
+            name: true,
+            username: true,
+            image: { select: { id: true } },
+            notes: { select: { id: true, title: true } },
         },
     })
-
     invariantResponse(owner, "Owner not found", { status: 404 })
 
-    const notes = db.note
-        .findMany({
-            where: {
-                owner: {
-                    username: {
-                        equals: params.username,
-                    },
-                },
-            },
-        })
-        .map(({ id, title }) => ({ id, title }))
-    return { owner, notes } as const
+    return { owner } as const
 }
 
 export default function NotesRoute() {
@@ -60,7 +50,7 @@ export default function NotesRoute() {
                             </h1>
                         </Link>
                         <ul className="overflow-y-auto overflow-x-hidden pb-12">
-                            {data.notes.map((note) => (
+                            {data.owner.notes.map((note) => (
                                 <li
                                     key={note.id}
                                     className="p-1 pr-0"

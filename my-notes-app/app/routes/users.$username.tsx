@@ -7,15 +7,20 @@ import {
 import { GeneralErrorBoundary } from "~/components/error-boundary"
 import { Spacer } from "~/components/spacer"
 import { Button } from "~/components/ui/button"
-import { db } from "~/utils/db.server"
+import { prisma } from "~/utils/db.server"
 import { getUserImgSrc, invariantResponse } from "~/utils/misc"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    const user = db.user.findFirst({
+    const user = await prisma.user.findUnique({
+        select: {
+            email: true,
+            username: true,
+            name: true,
+            createdAt: true,
+            image: { select: { id: true } },
+        },
         where: {
-            username: {
-                equals: params.username,
-            },
+            username: params.username,
         },
     })
 
@@ -25,12 +30,11 @@ export async function loader({ params }: LoaderFunctionArgs) {
         user: {
             name: user.name,
             username: user.username,
-            image: user.image ? { id: user.image.id } : undefined,
-        },
-        userJoinedDisplay: new Date(
-            user.createdAt
-        ).toLocaleDateString(),
-    } as const
+            email: user.email,
+            image: user.image,
+            userJoinedDisplay: user.createdAt.toLocaleDateString(),
+        } as const,
+    }
 }
 
 export default function ProfileRoute() {
@@ -66,7 +70,7 @@ export default function ProfileRoute() {
                         </h1>
                     </div>
                     <p className="mt-2 text-center text-muted-foreground">
-                        Joined {data.userJoinedDisplay}
+                        Joined {user.userJoinedDisplay}
                     </p>
                     <div className="mt-10 flex gap-4">
                         <Button asChild>

@@ -4200,7 +4200,7 @@ Once you've done that, you should have two new files:
 
 The `.env` file is auto-loaded by Prisma to find your database connection string. The `prisma/schema.prisma` file is where you'll define your database schema and is already loaded with a little bit of information:
 
-```prisma
+```ts
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -4309,7 +4309,7 @@ Models in a database often have relationships, like objects in our code or even 
 
 A person has one social security number, a social security number belongs to one person. Here's an example of how that could be represented in prisma.
 
-```prisma
+```ts
 model Person {
   id             String          @unique @default(cuid())
   name           String
@@ -4334,7 +4334,7 @@ The `onDelete` and `onUpdate` arguments specify what happens when the referenced
 
 A person has many phone numbers, a phone number belongs to one person. For example:
 
-```prisma
+```ts
 model Person {
   id           String        @unique @default(cuid())
   name         String
@@ -4355,7 +4355,7 @@ In this case, the biggest difference is that the `personId` field is not declare
 
 A blog post has many tags, a tag has many blog posts. For example:
 
-```prisma
+```ts
 model Post {
   id    String @id @default(cuid())
   title String
@@ -4583,7 +4583,7 @@ It's great that Prisma allows us to easily represent our database models and the
 
 Let's talk about what I mean by "breaking schema change". Let's say we have a sandwich ordering shop, like in the example from the first exercise. Here's the order model:
 
-```prisma
+```ts
 model Order {
   id         String      @id @default(uuid())
   createdAt  DateTime    @default(now())
@@ -4597,7 +4597,7 @@ model Order {
 
 What if we decided to add a `Reviews` model and have `reviews` on the order? That's a pretty straightforward change using the knowledge we've accumulated so far. Simply create the `Reviews` model and add it to the order model:
 
-```prisma
+```ts
 model Order {
   id         String      @id @default(uuid())
   createdAt  DateTime    @default(now())
@@ -4624,7 +4624,7 @@ We can `npx prisma db push` this change with no issues.
 
 But let's look at the `User` model:
 
-```prisma
+```ts
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -5109,11 +5109,237 @@ npx prisma studio
 
 ## 3.6 Querying Data
 
+Starting with this exercise, we're going to start migrating away from our in-memory database to our SQLite database. Because our seed data for each is the same for the Kody user (including IDs), you'll find lots of the app appears to work even for parts that haven't been migrated yet! 😆 Just be aware of this if you notice some odd behavior (like deleting or editing a note and not seeing those changes reflected in the app, you deleted it from one database, but not the other! 😅).
+With SQL, you query data using the `SELECT` statement. The `SELECT` statement is one of the most complex statements in SQL, but it's also the most powerful. It's used to query data from one or more tables. The `SELECT` statement is composed of several clauses, but the two most important are the `FROM` and `WHERE` clauses.
+
+Let's start by looking at a simple `SELECT` statement:
+
+```sql
+SELECT * FROM user;
+```
+
+This will select everything from the user table. Let me state that again:
+
+-   This will select (`SELECT`)
+-   Everything (`*`)
+-   From (`FROM`)
+-   The user table (`user`)
+
+The semicolon at the end is required. I guess nobody told SQL about [ASI](https://kcd.im/semicolons) 😆
+Let's add a bit more:
+
+```sql
+SELECT id, name, email FROM user;
+```
+
+-   This will select (`SELECT`)
+-   The id, name, and email columns (`id`, `name`, `email`)
+-   From (FROM)
+-   The user table (user)
+
+#### Where Clause
+
+As mentioned earlier, the `WHERE` clause is one of the most important clauses in a `SELECT` statement. It allows you to filter the data that's returned from the database. Let's look at an example:
+
+```sql
+SELECT id, name, email FROM user WHERE id = 1;
+```
+
+-   This will select (`SELECT`)
+-   The id, name, and email columns (`id, name, email`)
+-   From (`FROM`)
+-   The user table (`user`)
+-   Where (`WHERE`)
+-   The id column is equal to 1 (`id = 1`)
+
+The `WHERE` clause makes it so the database will only return rows that match the condition in the `WHERE` clause.
+
+#### Other clauses
+
+There are quite a few other clauses that you can use in a `SELECT` statement. You can find a comprehensive list of keywords like select clauses in [the SQLite keyword documentation](https://www.sqlite.org/lang_keywords.html), and then you can search any that interest you in [the SQLite docs search](https://www.sqlite.org/docs.html).
+
+If you ever see a SQL statement that's doing something you don't understand, you can paste it in [astexplorer.net](https://astexplorer.net) and select the SQL parser to see what different parts of the statement are called so you can look those things up. Next-level learning of SQL is to ask an AI assistant like [ChatGPT](https://chat.openai.com/) to help you learn. Just be sure to double-check your work. But it should help guide you to the right answer.
+
+### ORMs
+
+SQL is a complex syntax that has a lot of power. There are professionals who see the world in SQL (poor souls). But for the rest of us, we have ORMs. ORMs are Object Relational Mappers. And that's what the Prisma Client is all about. So instead of writing SQL queries by hand, we can use the Prisma Client to generate and execute the SQL for us.
+
+So, if we were to convert the SQL statement `SELECT id, name, email FROM user WHERE id = 1;` into a prisma call, it would look something like this:
+
+```tsx
+const user1 = await prisma.user.findUnique({
+    where: { id: 1 },
+    select: { id: true, name: true, email: true },
+})
+```
+
+The declarative nature of this API maps relatively well to the SQL that you would have written, so getting familiarity with SQL will help with using the Prisma Client.
+
+It's important to note that the Prisma Client is not a traditional ORM. It's an ORM-like API that generates and executes SQL for you. The objects you get back from the Prisma Client do not have methods you can call to do things like save them to the database (by default). Instead, you use the Prisma Client to do that. This is one way, the Prisma Client sheds some of the things I don't like about ORMs and keeps the things I do like about them.
+
+#### Prisma Limitations
+
+It should be mentioned that the Prisma Client isn't as powerful as SQL. There are things that you may want to do which the Prisma Client cannot express. In any typical application, you'll have a handful of cases like this (if any) and in those cases, there's an API to drop down to SQL. We'll get to that in the next exercise.
+
+#### Dealing with HMR
+
+Hot Module Replacement (HMR) means that every time we make a file change, our code is re-evaluated. This makes it so we can develop quickly, but it causes an issue we'll need to deal with.
+When we create a new `PrismaClient` instance in our application, we create a new connection to our database every time we make a change. Eventually, this will cause our application to crash! So we need a workaround.
+
+The workaround is simple: "If we've already created a `PrismaClient` instance, let's use that one instead of creating a new one." Here's a simplified version of what that would be like:
+
+```tsx
+import { PrismaClient } from "@prisma/client"
+
+if (!global.prisma) {
+    global.prisma = new PrismaClient()
+}
+
+export const prisma = global.prisma
+```
+
+So we store our `PrismaClient` instance in a variable on global (which is unchanged between re-evaluations of our server code), and then we check if it exists before creating a new one. If it does exist, we'll use that one, if it does not, then we create a new one.
+
+While it is pretty simple, it also means that any change to the Prisma client configuration will require a server restart. Luckily, we don't change our client configuration that often, so this is a small price to pay for the benefits of HMR.
+
+We have a utility that helps us with this (it's annoying otherwise because TypeScript doesn't love the `global.` stuff):
+
+```tsx
+import { PrismaClient } from "@prisma/client"
+import { singleton } from "#app/utils/singleton.server.ts"
+
+export const prisma = singleton("prisma", () => new PrismaClient())
+```
+
+#### Lazy connection
+
+The Prisma Client will not connect to the database until it needs to. This means your first query will take a bit longer than subsequent queries. This is normally fine, but since we're confident we're going to need to start querying the database quickly and connecting earlier doesn't cost anything, we can use [the `$connect` method](https://www.prisma.io/docs/concepts/components/prisma-client/working-with-prismaclient/connection-management#connect) to connect to the database as soon as possible.
+
+#### Logging
+
+Prisma Client has a built-in logger that you can use to see what queries are being executed. This is super helpful for debugging. You can also enable events for queries so you can customize the logging. You can read more about that in [the Prisma Client logging docs](https://www.prisma.io/docs/concepts/components/prisma-client/logging).
+
+-   [📜 Prisma Client CRUD docs](https://www.prisma.io/docs/concepts/components/prisma-client/crud)
+
 ### 3.6.1 Setup App Client
+
+👨‍💼 We are _finally_ ready to start using our new SQLite database in our application. We've already created a `PrismaClient` in our seed script, but now we want to access our SQLite data in our application.
+
+We're going to keep the old in-memory database around until we've migrated everything over, so just stick this new client above it at the top of `app/utils/db.server.ts`
+
+You'll need to handle HMR (as described in the background info for this exercise) using the `singleton` helper.
+
+We also want you to add logging for all Prisma queries, but we want to customize this so it only logs the slower queries so we can make sense of our logs. The emoji will help you out with that, but [here are the logging docs](https://www.prisma.io/docs/concepts/components/prisma-client/working-with-prismaclient/logging).
+
+Finally, we'll also want to pre-connect our client since we start making database queries right away and there's no benefit to the default lazy connection.
+
+The emoji will be your guide!
+
+-   [📜 Prisma Client Logging Docs](https://www.prisma.io/docs/concepts/components/prisma-client/working-with-prismaclient/logging)
+
+#### Conclusion
+
+👨‍💼 Terrific work 👏 Now we can start querying our real database for data instead of the fake old one 🎉 Let's get started on that next.
+
+💯 For extra credit, update the file to use the new prisma client to find images before continuing to the next step. Otherwise, 🧝‍♂️ Kellie will do it for you. Tip: Kellie makes two similar but different files for handling user and note images separately.
 
 ### 3.6.2 Select
 
+Let's talk about this:
+
+```sql
+SELECT * FROM user WHERE id = 1;
+```
+
+Maybe we really do want all the user's data, but most of the time we don't really need to retrieve the user's `createdAt` and `updatedAt` fields. We certainly wouldn't want to get their `password` (which of course would not be a part of the `User` model and certainly wouldn't be stored in plaintext, but this is the wrong workshop to get involved in that discussion).
+
+So instead, you normally want to be more selective about what you're retrieving:
+
+```sql
+SELECT id, name, email FROM user WHERE id = 1;
+```
+
+The same thing applies with Prisma. By default, if you don't have a `select`, Prisma will return all the fields on the model. But you can be more selective about what you want to retrieve:
+
+```ts
+const user = await prisma.user.findUnique({
+    select: { id: true, name: true, email: true },
+    where: { id: 1 },
+})
+```
+
+Let's migrate our Profile page to use our prisma client and select only the fields we need for our UI.
+
+`select` is also applicable for `create` and `update` operations as well. If you don't care about the return value of an operation, then I recommend you specify a select that only returns the id field. This will reduce the amount of data that needs to be returned from the database and will improve performance of your application.
+
+So once you're finished with the Profile page, go back to the seed script and add a select to the two create calls there.
+
+-   [📜 Prisma CRUD docs](https://www.prisma.io/docs/concepts/components/prisma-client/crud#read)
+
 ### 3.6.3 Nested Select
+
+👨‍💼 On our `/users/:username/notes page`, we're currently doing two queries to our in-memory database:
+
+1. Get the owner
+2. Get the notes
+
+We can definitely do this with Prisma, but it's even more efficient to do a single query that gets the owner and the notes in one go.
+
+This is something you can do with Prisma's `select` option. Here's an example of what a nested select would look like if we wanted to get all the reviews for a space ship:
+
+```ts
+await prisma.ship.findUnique({
+    where: { id },
+    select: {
+        id: true,
+        name: true,
+        reviews: {
+            select: { id: true, body: true, rating: true },
+        },
+    },
+})
+```
+
+This will give us data that looks something like this:
+
+```json
+{
+    "id": 1,
+    "name": "Millennium Falcon",
+    "reviews": [
+        {
+            "id": 1,
+            "body": "She may not look like much, but she's got it where it counts, kid",
+            "rating": 4
+        },
+        {
+            "id": 2,
+            "body": "What a piece of junk!",
+            "rating": 1
+        },
+        {
+            "id": 3,
+            "body": "She's the fastest hunk of junk in the galaxy!",
+            "rating": 4
+        },
+        {
+            "id": 4,
+            "body": "You came in that thing? You're braver than I thought.",
+            "rating": 2
+        },
+        {
+            "id": 5,
+            "body": "It's the ship that made the Kessel Run in less than twelve parsecs.",
+            "rating": 5
+        }
+    ]
+}
+```
+
+Can you please update the notes route so we get our data from SQLite and only do a single query to get the owner and the notes?
+
+Oh, and you'll need to make a couple changes in other spots because the notes will now be a property of the owner instead of a sibling on the loader data.
+Prisma also has an `include` option which makes it easier to include related models. NEVER USE THIS. It's just there for convenience for selecting all fields for a record, but you never want to do that anyway.
 
 ## 3.7 Updating Data
 

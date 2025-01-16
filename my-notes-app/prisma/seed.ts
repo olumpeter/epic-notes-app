@@ -114,6 +114,7 @@ async function seed() {
 
     for (let index = 0; index < totalUsers; index++) {
         await prisma.user.create({
+            select: { id: true },
             data: {
                 ...createUser(),
                 image: {
@@ -193,6 +194,7 @@ async function seed() {
     })
 
     await prisma.user.create({
+        select: { id: true },
         data: {
             email: "kody@kcd.dev",
             username: "kody",
