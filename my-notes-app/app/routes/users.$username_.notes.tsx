@@ -26,6 +26,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
 export default function NotesRoute() {
     const data = useLoaderData<typeof loader>()
+    console.log(data)
     const ownerDisplayName = data.owner.name ?? data.owner.username
     const navLinkDefaultClassName =
         "line-clamp-2 block rounded-l-full py-2 pl-8 pr-6 text-base lg:text-xl"

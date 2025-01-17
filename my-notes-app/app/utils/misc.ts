@@ -1,14 +1,19 @@
-import { useFormAction, useNavigation } from "@remix-run/react";
-import { type ClassValue, clsx } from "clsx";
-import { useEffect, useMemo, useRef } from "react";
-import { twMerge } from "tailwind-merge";
-import { useSpinDelay } from 'spin-delay'
+import { useFormAction, useNavigation } from "@remix-run/react"
+import { type ClassValue, clsx } from "clsx"
+import { useEffect, useMemo, useRef } from "react"
+import { twMerge } from "tailwind-merge"
+import { useSpinDelay } from "spin-delay"
 
-import userFallback from '~/assets/user.png'
-
+import userFallback from "~/assets/user.png"
 
 export function getUserImgSrc(imageId?: string | null) {
-	return imageId ? `/resources/images/${imageId}` : userFallback
+    return imageId
+        ? `/resources/user-images/${imageId}`
+        : userFallback
+}
+
+export function getNoteImgSrc(imageId: string) {
+    return `/resources/note-images/${imageId}`
 }
 
 /**
@@ -16,7 +21,7 @@ export function getUserImgSrc(imageId?: string | null) {
  * It also merges tailwind classes.
  */
 export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
+    return twMerge(clsx(inputs))
 }
 
 /**
@@ -46,7 +51,7 @@ export function invariantResponse(
                 : message ||
                   "An invariant failed, please provide a message to explain why.",
             { status: 400, ...responseInit }
-        );
+        )
     }
 }
 
@@ -58,33 +63,33 @@ export function useIsSubmitting({
     formAction,
     formMethod = "POST",
 }: {
-    formAction?: string;
-    formMethod?: "POST" | "GET" | "PUT" | "PATCH" | "DELETE";
+    formAction?: string
+    formMethod?: "POST" | "GET" | "PUT" | "PATCH" | "DELETE"
 } = {}) {
-    const contextualFormAction = useFormAction();
-    const navigation = useNavigation();
+    const contextualFormAction = useFormAction()
+    const navigation = useNavigation()
     return (
         navigation.state !== "idle" &&
         navigation.formMethod === formMethod &&
         navigation.formAction === (formAction ?? contextualFormAction)
-    );
+    )
 }
 
 /**
  *  Does its best to get a string error message from an unknown error.
  */
 export function getErrorMessage(error: unknown) {
-    if (typeof error === "string") return error;
+    if (typeof error === "string") return error
     if (
         error &&
         typeof error === "object" &&
         "message" in error &&
         typeof error.message === "string"
     ) {
-        return error.message;
+        return error.message
     }
-    console.error("Unable to get error message for error", error);
-    return "Unknown Error";
+    console.error("Unable to get error message for error", error)
+    return "Unknown Error"
 }
 
 /**
@@ -95,28 +100,28 @@ export function useFocusInvalid(
     hasErrors: boolean
 ) {
     useEffect(() => {
-        if (!formEl) return;
-        if (!hasErrors) return;
+        if (!formEl) return
+        if (!hasErrors) return
 
         if (formEl.matches("[aria-invalid='true']")) {
-            formEl.focus();
+            formEl.focus()
         } else {
             const firstInvalid = formEl.querySelector(
                 "[aria-invalid='true']"
-            );
+            )
             if (firstInvalid instanceof HTMLElement) {
-                firstInvalid.focus();
+                firstInvalid.focus()
             }
         }
-    }, [formEl, hasErrors]);
+    }, [formEl, hasErrors])
 }
 
 /**
  * Returns true if the current navigation is submitting the current route's
  * form. Defaults to the current route's form action and method POST.
- * 
+ *
  * Defaults state to "non-idle"
- * 
+ *
  * NOTE: the default formAction will include query params, but the
  * navigation.formAction will not, so don't use the default formAction if you
  * want to know if a form is submitting without specific query params.
@@ -127,16 +132,19 @@ export function useIsPending({
     state = "non-idle",
 }: {
     formAction?: string
-    formMethod?: "POST" | "GET" | "PUT" | "PATCH" | "DELETE" 
+    formMethod?: "POST" | "GET" | "PUT" | "PATCH" | "DELETE"
     state?: "submitting" | "loading" | "non-idle"
 } = {}) {
     const contextualFormAction = useFormAction()
     const navigation = useNavigation()
-    const isPendingState = 
-        state === "non-idle" ? navigation.state !== "idle" : navigation.state === state
+    const isPendingState =
+        state === "non-idle"
+            ? navigation.state !== "idle"
+            : navigation.state === state
     return (
-        isPendingState && 
-        navigation.formAction === (formAction ?? contextualFormAction) &&
+        isPendingState &&
+        navigation.formAction ===
+            (formAction ?? contextualFormAction) &&
         navigation.formMethod === formMethod
     )
 }
@@ -144,37 +152,39 @@ export function useIsPending({
 /**
  * Simple debounce implementation
  */
-function debounce<Callback extends (...args: Parameters<Callback>) => void>(
-	fn: Callback,
-	delay: number,
-) {
-	let timer: ReturnType<typeof setTimeout> | null = null
-	return (...args: Parameters<Callback>) => {
-		if (timer) clearTimeout(timer)
-		timer = setTimeout(() => {
-			fn(...args)
-		}, delay)
-	}
+function debounce<
+    Callback extends (...args: Parameters<Callback>) => void
+>(fn: Callback, delay: number) {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    return (...args: Parameters<Callback>) => {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(() => {
+            fn(...args)
+        }, delay)
+    }
 }
 
 /**
  * Debounce a callback function
  */
 export function useDebounce<
-	Callback extends (...args: Parameters<Callback>) => ReturnType<Callback>,
+    Callback extends (
+        ...args: Parameters<Callback>
+    ) => ReturnType<Callback>
 >(callback: Callback, delay: number) {
-	const callbackRef = useRef(callback)
-	useEffect(() => {
-		callbackRef.current = callback
-	})
-	return useMemo(
-		() =>
-			debounce(
-				(...args: Parameters<Callback>) => callbackRef.current(...args),
-				delay,
-			),
-		[delay],
-	)
+    const callbackRef = useRef(callback)
+    useEffect(() => {
+        callbackRef.current = callback
+    })
+    return useMemo(
+        () =>
+            debounce(
+                (...args: Parameters<Callback>) =>
+                    callbackRef.current(...args),
+                delay
+            ),
+        [delay]
+    )
 }
 
 /**
@@ -186,16 +196,16 @@ export function useDebounce<
  * request is.
  */
 export function useDelayedIsPending({
-	formAction,
-	formMethod,
-	delay = 400,
-	minDuration = 300,
+    formAction,
+    formMethod,
+    delay = 400,
+    minDuration = 300,
 }: Parameters<typeof useIsPending>[0] &
-	Parameters<typeof useSpinDelay>[1] = {}) {
-	const isPending = useIsPending({ formAction, formMethod })
-	const delayedIsPending = useSpinDelay(isPending, {
-		delay,
-		minDuration,
-	})
-	return delayedIsPending
+    Parameters<typeof useSpinDelay>[1] = {}) {
+    const isPending = useIsPending({ formAction, formMethod })
+    const delayedIsPending = useSpinDelay(isPending, {
+        delay,
+        minDuration,
+    })
+    return delayedIsPending
 }

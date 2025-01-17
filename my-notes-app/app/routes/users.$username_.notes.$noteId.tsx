@@ -2,68 +2,33 @@ import type {
     ActionFunctionArgs,
     LoaderFunctionArgs,
     MetaFunction,
-} from "@remix-run/node";
-import { Form, redirect, useLoaderData } from "@remix-run/react";
-import { Link } from "@remix-run/react";
+} from "@remix-run/node"
+import { Form, redirect, useLoaderData } from "@remix-run/react"
+import { Link } from "@remix-run/react"
 
-import type { loader as notesLoader } from "./users.$username_.notes";
-import { db } from "~/utils/db.server";
-import { floatingToolbarClassName } from "~/components/floating-toolbar";
-import { Button } from "~/components/ui/button";
-import { invariantResponse } from "~/utils/misc";
-import { GeneralErrorBoundary } from "~/components/error-boundary";
-import { csrf, validateCSRF } from "~/utils/csrf.server";
-import { CSRFError } from "remix-utils/csrf/server";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
-
-export const meta: MetaFunction<
-    typeof loader,
-    { "/routes/users.$username_.notes": typeof notesLoader }
-> = ({ data, params, matches }) => {
-    const notesMatch = matches.find(
-        (m) => m.id === "/routes/users.$username_.notes"
-    );
-    const displayName =
-        notesMatch?.data.owner.name ?? params.username;
-    const noteTitle = data?.note.title ?? "Note";
-    const noteContentSummary =
-        data && data?.note.content.length > 100
-            ? data?.note.content.slice(0, 97) + "..."
-            : data?.note.content;
-    return [
-        {
-            title: `${noteTitle} | ${displayName}'s Notes | Epic Notes`,
-        },
-        {
-            name: "description",
-            content: noteContentSummary,
-        },
-    ];
-};
+import { type loader as notesLoader } from "./users.$username_.notes"
+import { prisma } from "~/utils/db.server"
+import { floatingToolbarClassName } from "~/components/floating-toolbar"
+import { Button } from "~/components/ui/button"
+import { getNoteImgSrc, invariantResponse } from "~/utils/misc"
+import { GeneralErrorBoundary } from "~/components/error-boundary"
+import { csrf, validateCSRF } from "~/utils/csrf.server"
+import { CSRFError } from "remix-utils/csrf/server"
+import { AuthenticityTokenInput } from "remix-utils/csrf/react"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    const noteId = params.noteId;
-
-    const note = db.note.findFirst({
-        where: { id: { equals: noteId } },
-    });
-
-    if (!note) {
-        throw new Response("Note not found", { status: 404 });
-    }
-
-    const data = {
-        note: {
-            id: note.id,
-            title: note.title,
-            content: note.content,
-            images: note.images.map((i) => ({
-                id: i.id,
-                altText: i.altText,
-            })),
+    const note = await prisma.note.findFirst({
+        where: { id: params.noteId },
+        select: {
+            title: true,
+            content: true,
+            images: { select: { id: true, altText: true } },
         },
-    };
-    return data;
+    })
+
+    invariantResponse(note, "Note not found", { status: 404 })
+
+    return { note } as const
 }
 
 export async function action({
@@ -72,20 +37,21 @@ export async function action({
 }: ActionFunctionArgs) {
     invariantResponse(params.noteId, "noteId param is required")
 
-    const formData = await request.formData();
+    const formData = await request.formData()
     await validateCSRF(formData, request.headers)
-    const intent = formData.get("intent");
+    const intent = formData.get("intent")
 
     invariantResponse(intent === "delete", "Invalid intent", {
         status: 400,
-    });
+    })
 
-    db.note.delete({ where: { id: { equals: params.noteId } } });
-    return redirect(`/users/${params.username}/notes`);
+    await prisma.note.delete({ where: { id: params.noteId } })
+
+    return redirect(`/users/${params.username}/notes`)
 }
 
 export default function SomeNoteId() {
-    const data = useLoaderData<typeof loader>();
+    const data = useLoaderData<typeof loader>()
     return (
         <div className="absolute inset-0 flex flex-col px-10">
             <h2 className="mb-2 pt-12 text-h2 lg:mb-6">
@@ -95,9 +61,9 @@ export default function SomeNoteId() {
                 <ul className="flex flex-wrap gap-5 py-5">
                     {data.note.images.map((image) => (
                         <li key={image.id}>
-                            <a href={`/resources/images/${image.id}`}>
+                            <a href={getNoteImgSrc(image.id)}>
                                 <img
-                                    src={`/resources/images/${image.id}`}
+                                    src={getNoteImgSrc(image.id)}
                                     alt={image.altText ?? ""}
                                     className="h-32 w-32 rounded-lg object-cover"
                                 />
@@ -112,7 +78,6 @@ export default function SomeNoteId() {
             <div className={floatingToolbarClassName}>
                 <AuthenticityTokenInput />
                 <Form method="post">
-
                     <Button
                         type="submit"
                         name="intent"
@@ -127,7 +92,31 @@ export default function SomeNoteId() {
                 </Button>
             </div>
         </div>
-    );
+    )
+}
+
+export const meta: MetaFunction<
+    typeof loader,
+    { "/routes/users.$username_.notes": typeof notesLoader }
+> = ({ data, params, matches }) => {
+    const notesMatch = matches.find(
+        (m) => m.id === "/routes/users.$username_.notes"
+    )
+    const displayName = notesMatch?.data.owner.name ?? params.username
+    const noteTitle = data?.note.title ?? "Note"
+    const noteContentSummary =
+        data && data?.note.content.length > 100
+            ? data?.note.content.slice(0, 97) + "..."
+            : data?.note.content
+    return [
+        {
+            title: `${noteTitle} | ${displayName}'s Notes | Epic Notes`,
+        },
+        {
+            name: "description",
+            content: noteContentSummary,
+        },
+    ]
 }
 
 export function ErrorBoundary() {
@@ -141,5 +130,5 @@ export function ErrorBoundary() {
                 ),
             }}
         />
-    );
+    )
 }

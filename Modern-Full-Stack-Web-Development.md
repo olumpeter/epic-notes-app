@@ -5276,6 +5276,13 @@ So once you're finished with the Profile page, go back to the seed script and ad
 
 -   [📜 Prisma CRUD docs](https://www.prisma.io/docs/concepts/components/prisma-client/crud#read)
 
+#### Conclusion
+
+👨‍💼 Great, we've optimized things nicely for our queries!
+
+Notice that the types of the user are inferred from the `select` statement. Combine this with the fact that our loader data is inferred from what we return in the loader and that means you get type safety from the database all the way to the UI. This is _incredibly_ powerful. Try to remove a field and you'll immediately get red squiggles! Amazing.
+Let's keep going with our migration!
+
 ### 3.6.3 Nested Select
 
 👨‍💼 On our `/users/:username/notes page`, we're currently doing two queries to our in-memory database:
@@ -5340,6 +5347,14 @@ Can you please update the notes route so we get our data from SQLite and only do
 
 Oh, and you'll need to make a couple changes in other spots because the notes will now be a property of the owner instead of a sibling on the loader data.
 Prisma also has an `include` option which makes it easier to include related models. NEVER USE THIS. It's just there for convenience for selecting all fields for a record, but you never want to do that anyway.
+
+#### Conclusion
+
+👨‍💼 That's enough for now. Migrating the rest of our selects will be more of the same. 💯 As extra credit, you can update the loader for `app/routes/users+/$username_+/notes.$noteId.tsx` and `app/routes/users+/$username_+/notes.$noteId_.edit.tsx`. If you don't, 🧝‍♂️ Kellie will do it for you.
+
+🧝‍♂️ I'm also going to change our note edit form schema a tiny bit on the server to add a `transform` so we can change the `image.file` from a File object to an object with `contentType: string, blob: Buffer` which will make it easier to insert into the database. If you're feeling adventurous, try to do that on your own. If not, I'll do it for you. Feel free to peak at the diff if you want to see how I did it.
+
+Now it's time that we start thinking about how to manage updates with prisma. Let's get to that next!
 
 ## 3.7 Updating Data
 
