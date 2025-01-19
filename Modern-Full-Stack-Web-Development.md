@@ -5578,15 +5578,360 @@ Cool right? So, turns out our entire transaction can be represented as a nested 
 
 👨‍💼 That's great work! So which do you prefer? Sometimes you can't represent a transaction in a single Prisma call like that, but it all comes back to the fact that these things are run as a part of a transaction. So you can do multiple database calls and they all succeed or fail together.
 
-## 3.8 SQLn
+## 3.8 SQL
+
+When working with something you're unfamiliar with, you may struggle with syntax. As usual, I suggest you send this into some AI assistant like [ChatGPT](https://chat.openai.com/) which can do a surprisingly good job of helping you identify what's wrong with your syntax. It's not perfect, but it's a good start.
+No matter how great an ORM is, you do sometimes need to just break out some raw SQL. There are some queries that just can't be represented very well in an ORM.
+
+Search is often a good example of a query that is better done in SQL. Consider a query that attempts to look up the cities that are closest to a geographical location. This involves some math that cannot be represented with Prisma.
+
+Here's a snippet from a project I worked on that did this:
+
+```sql
+acos(
+	sin(starport.lat * PI()/180)
+	* sin(city.lat * PI()/180)
+	+ cos(starport.lat * PI()/180)
+	* cos(city.lat * PI()/180)
+	* cos((starport.long - city.long) * PI()/180)
+)
+* 180/PI() * 60
+-- Earth radius: 3958.76 miles
+-- And one minute of arc is: 2π * 3958.76 miles / 60 / 360 = 1.1515
+* 1.1515
+```
+
+Good luck representing that in Prisma!
+
+This is the full SQL if you're interested
+
+```sql
+SELECT
+	ship.id,
+	ship.modelId,
+	ship.hostId,
+	ship.starportId,
+	model.brandId,
+	ship.imageId,
+	ship.name,
+	ship.dailyCharge,
+	ship.capacity,
+	(
+		SELECT
+			avgRating
+		FROM
+			(
+				SELECT
+					hostReview.userId,
+					AVG(hostReview.rating) AS avgRating
+				FROM
+					Host host
+					INNER JOIN HostReview hostReview ON hostReview.subjectId = host.userId
+				GROUP BY
+					host.userId
+			) AS hostRatings
+		WHERE
+			hostRatings.userId = ship.hostId
+	) as hostAvgRating,
+	(
+		SELECT
+			avgRating
+		FROM
+			(
+				SELECT
+					ship.id,
+					AVG(shipReview.rating) AS avgRating
+				FROM
+					Ship ship
+					INNER JOIN ShipReview shipReview ON shipReview.subjectId = ship.id
+				GROUP BY
+					ship.id
+			) AS shipRatings
+		WHERE
+			shipRatings.id = ship.id
+	) as shipAvgRating
+FROM
+	Ship ship
+	INNER JOIN ShipModel model ON model.id = ship.modelId
+	INNER JOIN (
+		SELECT
+			starport.id,
+			acos(
+				sin(starport.lat * PI()/180)
+				* sin(city.lat * PI()/180)
+				+ cos(starport.lat * PI()/180)
+				* cos(city.lat * PI()/180)
+				* cos((starport.long - city.long) * PI()/180)
+			)
+			* 180/PI() * 60
+			-- Earth radius: 3958.76 miles
+			-- And one minute of arc is: 2π * 3958.76 miles / 60 / 360 = 1.1515
+			* 1.1515
+		FROM
+			starport
+			JOIN city ON city.id IN ("some_id","some_other_id")
+		ORDER BY
+			distance ASC
+		LIMIT
+			1
+	) AS closestStarport ON closestStarport.id = ship.starportId
+WHERE
+	closestStarport.id = ship.starportId
+LIMIT
+	50;
+```
+
+Luckily, in cases like this, we can use `prisma.$queryRaw` to execute raw SQL queries. This is a great escape hatch for when you need it. It even supports parameterized queries, so you can avoid SQL injection attacks:
+
+```ts
+const ships = await prisma.$queryRaw`
+SELECT name, username from user WHERE user.id = ${params.userId};
+`
+// the interpolated string is auto-escaped.
+```
+
+The tricky bit here is that the return value of this query is going to be `any` because Prisma has no way of knowing what the shape of the data is going to be.
+
+We could definitely just cast this to the shape we expect, but the problem with that is if we change the query, we may forget to update the type. So instead we can use zod to define a schema for the data we expect to get back and then validate it.
+
+```ts
+import { z } from "zod"
+
+const CitySchema = z.object({
+    id: z.number(),
+    name: z.string(),
+})
+const CitiesSchema = z.array(CitySchema)
+
+const rawCities = await prisma.$queryRaw`...`
+
+const result = CitiesSchema.safeParse(rawCities)
+
+if (result.success) {
+    const cities = result.data
+} else {
+    console.error(result.error)
+}
+```
+
+It's unfortunate to parse your own data (if you can't trust yourself, who can you trust!?), but if this became a bottleneck for you, you could strip out the runtime validation in production.
+
+-   [📜 Prisma `$queryRaw`](https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#queryraw)
 
 ### 3.8.1 Raw SQL
 
+👨‍💼 Our user search is the last thing that needs to be updated to use SQLite instead of the in-memory database. I've got some requirements in mind for this feature, but for now, we're going to start small with something you could definitely do with regular Prisma queries, and then add onto it for some features you couldn't.
+
+First off, I want you to select user's id, name, and username. I want the `searchTerm` to match against the username or the name, and I only want the first 50 results.
+
+You're going to need to use `LIKE` in your `WHERE` clause and `OR` as well. Here's an example of what the SQL might look like if we were trying to search for reviews that had the word "great" in them:
+
+```sql
+SELECT * FROM "Review" WHERE "text" LIKE '%great%';
+```
+
+And here's an example of a query that uses `OR`:
+
+```sql
+SELECT * FROM "Review" WHERE "text" LIKE '%great%' OR "text" LIKE '%awesome%';
+```
+
+The `%` sign is a wildcard that matches any number of characters. So, the first query would match "great", "not great", "great great great", etc. That character needs to be part of what you interpolate into the Prisma raw query, so if you wanted to parameterize that second query it would look like this:
+
+```ts
+const searchTerm1 = "%great%"
+const searchTerm2 = "%awesome%"
+await prisma.$queryRaw`
+  SELECT * FROM "Review" WHERE "text" LIKE ${searchTerm1} OR "text" LIKE ${searchTerm2};
+`
+```
+
+In our case, you'll be getting the search term from the query string and it could be null, so you'll want to fallback to '' if it is. Also, you'll be using the same search term for both the username and name fields.
+
+-   [📜 Prisma `$queryRaw`](https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#queryraw)
+
+#### Conclusion
+
+👨‍💼 Great job! So far we're not doing anything you couldn't do with regular Prisma, but we'll get there. I've got some more requirements for you than we had before. Let's take care of the TypeScript issues first though...
+
+If you want to, you can update to remove the old in-memory db we had before. We're not using it anywhere else anymore!
+
+If you'd rather not, 🧝‍♂️ Kellie will do it for you.
+
 ### 3.8.2 Validation
+
+👨‍💼 When you execute a raw query like this, it's not possible to determine the actual types for what the database gives back to you. Because we're querying our own database, we can pretty well trust the data that will come back. So we could just do this:
+
+```ts
+type Report = {
+    id: string
+    name: string
+    number: number
+}
+type Reports = Array<Report>
+
+const reports = (await prisma.$queryRaw`
+SELECT id, name, number
+FROM ...
+`) as Reports
+```
+
+But the issue here is we could easily (or accidentally) change our SELECT statement or change our database schema and there wouldn't be anything to stop us from shipping that breakage to production (except for maybe the tests you for sure have 😉).
+
+So what we can do instead, is add runtime validation with [zod](https://zod.dev/):
+
+```ts
+import { z } from "zod"
+const ReportSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    number: z.number(),
+})
+const ReportsSchema = z.array(ReportSchema)
+
+const rawReports = await prisma.$queryRaw`
+SELECT id, name, number
+FROM ...
+`
+const result = ReportsSchema.safeParse(rawReports)
+if (!result.success) {
+    // handle the error case with result.error.message
+}
+const reports = result.data
+```
+
+So, let's add some runtime validation of our users query to protect ourselves from ourselves when executing this raw query.
+
+🦉 To test the error case, simply add or change a property in your zod schema or in the SELECT statement of the query.
+
+[zod `nullable` utility](https://zod.dev/?id=nullables)
+
+#### Conclusion
+
+👨‍💼 Looking good! Now we can more safely change our database schema and the query! You will want to make sure to add a test to this page to help catch mistakes, but we're much better off having this validation in place.
+
+🦉 Parsing data at runtime can be a potential issue if there are many records to parse and validate. However that's unlikely to be an issue here with a limit of 50 records. That said, we could definitely strip this in production with something like this:
+
+```ts
+const result = UserSearchResultsSchema.safeParse(rawUsers)
+const result =
+    ENV.MODE === "production"
+        ? ({
+              success: true,
+              data: rawUsers as z.infer<
+                  typeof UserSearchResultsSchema
+              >,
+          } as const)
+        : UserSearchResultsSchema.safeParse(rawUsers)
+if (!result.success) {
+    return json(
+        { status: "error", error: result.error.message } as const,
+        {
+            status: 400,
+        }
+    )
+}
+return json({ status: "idle", users: result.data } as const)
+```
+
+And we can turn that into a util function as well if we found ourselves wanting to do that a lot.
 
 ### 3.8.3 Joins
 
+👨‍💼 Currently our user search page is only showing the fallback image for our users because our query is too simple and doesn't include the users' images.
+
+The image data isn't stored in the user table, but in a UserImage table, so we need to have the database join the two records together to form a single record which it can return back to us.
+
+🦉 Let's talk about database joins for a moment.
+
+![Visual representation of Inner, Left, Right, and Full Joins by The Data Geekery SQL Masterclass](https://camo.githubusercontent.com/97b5aec2ac9f0ba1e2737bbfbbdb470d069541294310731f1a80d0ae7af8bc6d/68747470733a2f2f6769746875622d70726f64756374696f6e2d757365722d61737365742d3632313064662e73332e616d617a6f6e6177732e636f6d2f313530303638342f3235353730393437312d34353837306332642d343737632d343166612d626462302d6162393062343536653565312e706e67)
+
+Considering this chart, think of the left side of the join as our User table and the right side as the Image table. We want to get all the users whether or not they have an image, but if they do have an image we want their image ID. Which of these matches that desired result? It should result in all of the rows on the left (but none extra), and the right rows where available.
+
+So what we want to add here is a LEFT JOIN.
+
+When you perform a join, you define the table you want to join to, and then you define the condition for the join. In our case, we want to join the `Images` to the `Users` where the `user.id` matches the `image.userId`. This means that the database will look at each row in the `Users` table, and then look at each row in the `Images` table, and if the `userId` matches, it will include the `Image` row in the result.
+
+Here's an example of the syntax for a `LEFT JOIN` for joining space ships to their models:
+
+```sql
+SELECT ships.id, ships.name, models.name AS modelName
+FROM ships
+LEFT JOIN models ON ships.modelId = models.id
+```
+
+Notice that with this, we have access to the `models` in our `SELECT` statement.
+
+👨‍💼 Great, so let's add a left join to our query so we can access the user's image's `id` so we can include the `image.id` in our select so we can display it in our app.
+
+You'll also want to update the zod schema to account for the new field.
+
+#### Conclusion
+
+👨‍💼 It's nice to have our users' images on there now! We've hit feature parity with what things used to look like.
+
+But you know... I am a product manager... And now that I see this, I feel a little bit of scope creep coming on. It's not much! Just a little something...
+
 ### 3.8.4 Order By
+
+👨‍💼 Ok ok, hear me out. It's awesome that we can search by our user's names and usernames. But what would be more awesome is if the users were sorted by how active they've been. We don't want to have a user who hasn't added or updated a note in months or years coming up ahead of a user who adds and updates notes on a daily basis.
+
+We want our users to find the most active users. So let's sort things by how active they've been. We'll do this by identifying each user's most recently updated note. We'll use the `updatedAt` of the most recently updated note. And then sort the users we've found by that field for each of them.
+
+🦉 Order By can be pretty straightforward:
+
+```sql
+SELECT id, title, content from Review
+ORDER BY updatedAt
+LIMIT 30;
+```
+
+But it can also be more complicated using a nested query, which is what we'll need to do:
+
+```sql
+SELECT id, name, content
+FROM Ship as ship
+ORDER BY
+	(
+		SELECT avgRating FROM
+			(
+				SELECT ship.id, AVG(shipReview.rating) AS avgRating
+				FROM Ship ship
+                INNER JOIN ShipReview shipReview
+                ON shipReview.subjectId = ship.id
+				GROUP BY ship.id
+			) AS shipRatings
+		WHERE shipRatings.id = ship.id
+	) DESC
+LIMIT 50
+```
+
+👨‍💼 Luckily, our `ORDER BY` won't be _quite_ as complicated. Nested queries like this are one example of the power of SQL!
+
+It's easiest to think of the nested query on its own before combining it with the parent query. So consider the requirement:
+
+1. Select `updatedAt`
+2. From the `Note` model
+3. Where the `ownerId` matches the `user.id`
+4. Order by the `updatedAt` descending (`DESC`)
+5. Get only the first one (`LIMIT`)
+
+Once you have that, then you can wrap that in an `ORDER BY` and you're golden.
+
+Remember, [ChatGPT](https://chat.openai.com/) can help guide you on this one or if you really get stuck you can check{' '} the diff tab.
+To test this one out, perform a search, then open the second user, and edit one of their notes. Go back and perform the same search and that user should show up on top.
+
+#### Conclusion
+
+👨‍💼 Terrific work! You should be proud of yourself! Give yourself a pat on the back! (I would, but I'm just a 👨‍💼 emoji).
+
+🦉 I want to call out that until we added the `order by` we didn't need to use `prisma.$queryRaw`. Prisma is pretty powerful by itself and most of the time you don't need to reach for raw SQL statements. But when you do, you'll be glad that you could.
+
+#### Typed SQL
+
+An exciting new feature in Prisma 5.19.0 is the prisma.$queryRawTyped function. This allows you to run raw SQL queries and get typed results back from your database.
+
+This is a game changer for type safety and developer experience.
 
 ## 3.9 Query Optimization
 
