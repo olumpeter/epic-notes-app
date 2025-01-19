@@ -5358,15 +5358,227 @@ Now it's time that we start thinking about how to manage updates with prisma. Le
 
 ## 3.7 Updating Data
 
+Here's how you insert data into a table in SQL:
+
+```sql
+INSERT INTO table_name (column1, column2, column3, ...)
+VALUES (value1, value2, value3, ...);
+```
+
+And here's how you would update existing data in SQL:
+
+```sql
+UPDATE table_name
+SET column1 = value1, column2 = value2, ...
+WHERE condition;
+```
+
+And you can even do what's called an "upsert" which is an update or insert depending on whether the data already exists:
+
+```sql
+INSERT INTO table_name (column1, column2, column3, ...)
+VALUES (value1, value2, value3, ...)
+ON CONFLICT (column1)
+DO UPDATE SET column2 = value2, column3 = value3, ...;
+```
+
+There's more syntax you can use in SQLite to exclude certain columns from the update, and you can even do an "insert or ignore" which will ignore the insert if the data already exists.
+
+And finally, you can of course delete data from a table:
+
+```sql
+DELETE FROM table_name
+WHERE condition;
+```
+
+#### Prisma
+
+Prisma has utilities for all of these operations. We've already used them in the seed script we've written. But here's a quick refresher of all of these operations:
+
+```ts
+// update the rocket with id "1" to have the name "Falcon 9"
+await prisma.rocket.update({
+    where: { id: 1 },
+    data: { name: "Falcon 9" },
+})
+
+// update the rocket with the id "1" to have the name "Falcon 9" if it exists,
+// otherwise create a new rocket with the name "Falcon 9"
+await prisma.rocket.upsert({
+    where: { id: 1 },
+    update: { name: "Falcon 9" },
+    create: { name: "Falcon 9" },
+})
+
+await prisma.rocket.delete({
+    where: { id: 1 },
+})
+```
+
+Prisma with SQLite supports `updateMany` and `deleteMany`. So if your where clause matches more than one record, your update will apply to every record that matches. However, `upsertMany` is not supported.
+
+You can also perform nested queries for these as well.
+
+#### Transactions
+
+Let's say you're a bank and you're building a system to allow users to send money to each other. This will be a multi-step process that may look something like this:
+
+1. Check that the user has enough money in their account to send the money
+2. Remove the money from the user's account
+3. Add the money to the recipient's account
+
+If step 3 fails, we'll end up with a user who has less money than they should have! It would be better if we could roll back the changes we made in step 2. Kind of an "all or nothing" approach. That's what a "transaction" is (see why I used a banking metaphor? 😅). And transactions are supported by SQLite and Prisma natively. Here's the SQL syntax for a SQL-based transaction:
+
+```sql
+BEGIN TRANSACTION;
+UPDATE table_name
+SET column1 = value1, column2 = value2, ...
+WHERE condition;
+UPDATE table_name
+SET column1 = value1, column2 = value2, ...
+WHERE condition;
+COMMIT;
+```
+
+And here's the Prisma syntax:
+
+```ts
+await prisma.$transaction([
+    prisma.rocket.update({
+        where: { id: 1 },
+        data: { name: "Falcon 9" },
+    }),
+    prisma.rocket.update({
+        where: { id: 2 },
+        data: { name: "Falcon Heavy" },
+    }),
+])
+```
+
+Personally, I'm not a fan of the array API and I prefer the following callback API:
+
+```ts
+await prisma.$transaction(async ($prisma) => {
+    await $prisma.rocket.update({
+        where: { id: 1 },
+        data: { name: "Falcon 9" },
+    })
+    await $prisma.rocket.update({
+        where: { id: 2 },
+        data: { name: "Falcon Heavy" },
+    })
+})
+```
+
+In either case, it's the same. If any of the queries fail, the entire transaction will fail and none of the changes will be applied.
+
+[📜 Prisma Client Reference: Model Queries](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#model-queries)
+[📜 Prisma Client Reference: Nested Queries](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#nested-queries)
+
 ### 3.7.1 Delete
+
+👨‍💼 This first part of the exercise is going to be a bit on the easy side, because the update note bit is going to be a little more complicated 😅
+
+Please migrate our delete note functionality from the in-memory `db` to our `prisma` client.
+
+Now that you're able to delete notes, keep in mind you can always restore them by re-running the `seed` command: `npx prisma db seed`. You do not need to restart the server to see changes.
+
+-   [📜 Prisma Client Reference: `delete`](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#delete)
+
+#### Conclusion
+
+👨‍💼 Huzzah, now when we delete a note it is deleting it from the right database so we should see it disappear from the list of notes 😅
 
 ### 3.7.2 Update
 
+👨‍💼 We need to fix our note edit so we can save edits to our notes in the SQLite database instead of our old in-memory database.
+
+So here's what I want you to do, and the emoji in the file will help you:
+
+1. Update the note
+2. Delete the images that are no longer in the note
+3. Update the images that are still in the note
+4. Add the new images to the note
+
+#### Caching and IDs
+
+Our images are cached with `Cache-Control` headers, so if an image is updated, we could end up with a stale image in the browser cache. To fix this, we can change the ID of the image if the user updates it. So even though the database normally creates IDs for us, we're going to need to create our own ID in this case. We'll be using the module `@paralleldrive/cuid2` to generate our `cuid` in this case.
+
+-   [📜 Prisma `notIn`](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#notin)
+
+#### Conclusion
+
+👨‍💼 Nice work 👏 Now users can delete images, update existing images, and create new images. In addition to update the content and title of the note as well. But we've got a problem... These are a bunch of sequential operations. But what if one of them fails? Let's consider that in the next step.
+
 ### 3.7.3 Transactions
+
+👨‍💼 Whoops! So we've got an issue. If one of the steps in our multi-step process to update a note fails, we'll end up with a halfway updated note. This is problematic for our situation, but it could be worse (like in the banking example we had in the introduction to this exercise).
+
+As a reminder, here's the example of prisma's transaction API:
+
+```ts
+await prisma.$transaction(async ($prisma) => {
+    await $prisma.rocket.update({
+        where: { id: 1 },
+        data: { name: "Falcon 9" },
+    })
+    await $prisma.rocket.update({
+        where: { id: 2 },
+        data: { name: "Falcon Heavy" },
+    })
+})
+```
+
+With that, you should have enough to get going! Let's put all of these note update steps in a single transaction.
+
+🧝‍♂️ If you'd like to test things out, I left a comment in there for an error. With that error, you should be able to update a note and get deleted images, but no new images or updated images. Your job is to make it so it all succeeds or fails together.
+
+-   [📜 Prisma $transaction](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#transaction-api)
+
+#### Conclusion
+
+👨‍💼 Great! Now our data can't get in this weird halfway saved state if there's a save failure! But you know what... The Prisma Client is pretty powerful and expressive and 🧝‍♂️ Kellie had an idea that I think you'd be interested in...
 
 ### 3.7.4 Nested Update
 
-## 3.8 SQL
+👨‍💼 the Prisma Client is pretty powerful and expressive with its nested queries. For example:
+
+```ts
+await prisma.ship.update({
+    select: { id: true },
+    where: { id: 1 },
+    data: {
+        name: "The Black Pearl",
+        captain: {
+            update: {
+                name: "Jack Sparrow",
+            },
+        },
+    },
+})
+```
+
+This does not result in a single query. This is actually multiple queries in a single transaction! Here's an example of what the queries generated from that nested update may look like:
+
+```sql
+BEGIN
+SELECT "public"."Ship"."id" FROM "public"."Ship" WHERE ("public"."Ship"."id" = $1 AND 1=1)
+SELECT "public"."Ship"."id", "public"."Ship"."name", "public"."Ship"."captainId" FROM "public"."Ship" WHERE ("public"."Ship"."id" = $1 AND 1=1) OFFSET $2
+UPDATE "public"."Ship" SET "name" = $1 WHERE ("public"."Ship"."id" = $2 AND 1=1)
+COMMIT
+```
+
+Cool right? So, turns out our entire transaction can be represented as a nested query with Prisma rather than multiple calls. The images just need multiple subqueries to handle the delete, update, and create that can happen as a part of this note update. Give it a shot and think about which approach you prefer.
+
+-   [📜 Prisma nested `deleteMany`](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#deletemany-1)
+-   [📜 Prisma nested `updateMany`](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#updatemany-1)
+-   [📜 Prisma nested `create`](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#create-1)
+
+#### Conclusion
+
+👨‍💼 That's great work! So which do you prefer? Sometimes you can't represent a transaction in a single Prisma call like that, but it all comes back to the fact that these things are run as a part of a transaction. So you can do multiple database calls and they all succeed or fail together.
+
+## 3.8 SQLn
 
 ### 3.8.1 Raw SQL
 

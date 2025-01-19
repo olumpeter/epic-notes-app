@@ -12,8 +12,8 @@ import { floatingToolbarClassName } from "~/components/floating-toolbar"
 import { Button } from "~/components/ui/button"
 import { getNoteImgSrc, invariantResponse } from "~/utils/misc"
 import { GeneralErrorBoundary } from "~/components/error-boundary"
-import { csrf, validateCSRF } from "~/utils/csrf.server"
-import { CSRFError } from "remix-utils/csrf/server"
+// import { csrf, validateCSRF } from "~/utils/csrf.server"
+// import { CSRFError } from "remix-utils/csrf/server"
 import { AuthenticityTokenInput } from "remix-utils/csrf/react"
 
 export async function loader({ params }: LoaderFunctionArgs) {
@@ -38,7 +38,7 @@ export async function action({
     invariantResponse(params.noteId, "noteId param is required")
 
     const formData = await request.formData()
-    await validateCSRF(formData, request.headers)
+    // await validateCSRF(formData, request.headers)
     const intent = formData.get("intent")
 
     invariantResponse(intent === "delete", "Invalid intent", {
