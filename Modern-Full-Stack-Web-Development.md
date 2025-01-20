@@ -5935,6 +5935,591 @@ This is a game changer for type safety and developer experience.
 
 ## 3.9 Query Optimization
 
+An enormous number of performance optimizations in web applications can be best accomplished by optimizing database queries. There are many stories of situations where companies will spend millions of dollars scaling hardware to ridiculous specifications and numbers. Or adding multiple levels of caching. And adding a bunch of UI logic to improve the perceived performance for users who have to wait on the database queries (kinda like what Disneyland does by adding entertainment to the ride lines). All in the effort to reducing the impact of performance problems.
+
+And in many of these stories, a highly paid consultant will come in and perform some of the analysis you're about to learn, add a handful of database indexes (sometimes even one is enough) and take the query from a minute or two to a couple milliseconds. Then the consultant charges a ton of money and moves on to the next one.
+
+This is not hyperbole. This is real life. Of course you always want to make your UI have a nice pending experience (no amount of database optimization will control your user's network speed), but you can certainly make a big impact on your database queries by adding thoughtful optimizations in the form of indexes and optimized queries.
+
+On the subject of optimized queries, it's outside the scope of this workshop to go further into SQL than we already have. Most web developers won't need to know more about SQL than what we've already covered. But you should know that you definitely can go deeper if you need to.
+
+We're going to focus on indexing
+
+#### Database indexes Metaphor
+
+Here's a useful metaphor for database indexes I've got from [Tyler Benfield](https://twitter.com/rtbenfield).
+
+Imagine a "Photos" directory on your computer. At first, as you started taking photos, you just put them all in there with no sorting on whatsoever. Filenames are auto-generated (via cuid() or similar) so sorting by the filename doesn't even help.
+
+At first, this is fine. When you want to find photos from your trip to Rome last week, it takes a little bit of searching but it's not a big deal.
+
+But then you start traveling more. You go to Salt Lake City, and then Madrid, then Lagos, then Goa, and more and over the course of a year you've traveled many places and added many photos.
+
+Let's also add that your memory is very bad (or maybe just hyper-optimized?) so you have _no_ way to remember when you went to these different places or if you even went at all. Every time you look at the photos directory you're starting from scratch.
+
+Now your lack of organization is very painful. Your friends lose interest before you are able to find the photo of you standing on the Great Wall of China. So you decide something must be done.
+
+Luckily, you have meta data associated to the photos so you start to sort them into categories. The most sensible category you can think of is to sort them by the month they were taken. So you make folders for `2023-06`, `2023-07`, etc.
+
+In our example, instead of moving the files to those folders, you create symlinks to the files. So the files don't move to the folders. They're just easy to find from the folders.
+
+So the next time someone asks you what you did last summer, you're able to find those photos very quickly.
+
+This is an example of an index on a column.
+Then one day a friend asks you whether you've ever been to the Alps. You're right back in the same place you were as if there were no folders (index) at all. So you add another set of folders with file symlinks for the location. Now you can much more easily find the photo of you at any location (like your trip to the San Diego Zoo).
+
+This is a second index on the same table. You can have more than one.
+But you continue traveling and sometimes you go to the same place more than once. One day you're looking for pictures of a trip to Amsterdam in 2022. Which folder will you look in?
+
+So you decide to create new folders that combine both the location and the date. `2022-04/Amsterdam`, `2023-07/Amsterdam`, etc. But after thinking about it a bit you find yourself searching for photos by location first and then sorting by date, so you change it to Amsterdam/2022-04, Amsterdam/2023-07, etc.
+
+This is called a composite (or multi-column) index
+An index on a database column is extra data (managed by the database) that the database can reference when performing queries rather than looking at the individual records themselves. It has massive potential to speed up your queries by a huge margin.
+
+#### Things to consider
+
+Just like in our photos example, when you create an index, there are two things you should think about:
+
+1. It takes more space
+2. It takes more time to add new records
+
+In a typical web application you almost _always_ will want to optimize for speed of reads over storage cost and speed of writes. This is because most web applications are read-heavy. That is, there are many more reads than writes. And storage costs are relatively minimal.
+
+Regarding storage space, there are many factors that go into the storage space taken up by an index, but most of the time it will be less than the size of the column it's indexing. But that's a good metric to measure the size of your index against. For multi-column indexes, you may think it's the size of the sum of the two columns, but it's likely going to be quite a bit less (just like in our example, the sub-folders didn't need to have the parent folder name in them).
+
+Additionally, users are typically more forgiving of a "save" operation taking a bit more time than a "search" operation.
+
+Oh, and it turns out that adding an index can sometimes speed up writes as well. Consider:
+
+```sql
+UPDATE user
+SET name = 'Alice'
+WHERE username = 'alicerocks';
+```
+
+If you didn't have an index on the `username` field, the database would have to look at every single record in the users table to find the one with the `username` of `alicerocks`. But if you have an index on the `username` field, the database can look up the record very quickly and then update it.
+
+In web applications, you should default to adding indexes that speed up queries and only if it becomes a performance problem should you consider removing them.
+
+#### Things to index by default
+
+By default, Prisma indexes the unique fields of each table (like the primary key field id). This is great because we very often look up a record by its ID. But there are other things we should consider indexing by default as well.
+
+Foreign keys are a great example. If you have a `User` table and a `Post` table and each post has a `userId` column, you should index the `userId` column on the `Post` table. This will make it much faster to find all the posts for a given user.
+
+By default, you should probably index foreign keys for fields which are not unique.
+Some databases (MySQL) will index foreign keys by default, but SQLite, Postgres, and SQL Server do not. Prisma strives to be consistent with our database so that's why it doesn't index foreign keys by default, but it's more often than not a good choice.
+
+Prisma automatically creates an index on fields that have `@unique` on them, so if your foreign key has `@unique`, then you don't need to add an index for that one.
+Another thing to consider indexing, is anything that appears in your `WHERE` clause or `ORDER BY` clause. If you're filtering or sorting by a column, you can probably speed up the query quite a bit by adding an index on that column. And in some cases you'll want to add a multi-column index (for the "find by X, then sort those by Y scenario").
+
+#### Identifying index opportunities
+
+Unfortunately this is more of an art than a science (otherwise databases and ORMs would just do it for us). But there are some things you can do to identify why a particular query is slow.
+
+Watch out for memory or CPU spikes. When the database is doing a full table scan, it's going to be using a lot of memory and CPU. If you see spikes in either of those, it's a good sign that you need to add an index in one of your queries.
+
+One way to find and understand optimization opportunities is to use EXPLAIN` QUERY PLAN` to see what the database plans to do for the query. This will show you what indexes it's using (if any at all). Things to watch out for in the output are "SCAN" without an index. This means the database is going to look at every single record in the table. For tables with very few records this doesn't matter, but for tables with millions of records, this can be very slow.
+
+Here's a simple example:
+
+```sql
+EXPLAIN QUERY PLAN SELECT * FROM user WHERE name = 'Alice';
+```
+
+Here the name is not indexed so the database is going to do a full table scan:
+
+```sql
+QUERY PLAN
+`--SCAN user
+```
+
+```sql
+EXPLAIN QUERY PLAN SELECT * FROM user WHERE username = 'alicerocks';
+```
+
+Here, the `username` is unique and therefore automatically indexed by Prisma's migrate command, so the database is able to do a quick lookup using the index Prisma made for us:
+
+```sql
+QUERY PLAN
+`--SEARCH user USING INDEX User_username_key (username=?)
+```
+
+We'll go deeper on this analysis in the exercise.
+
+#### Indexing in Prisma
+
+As mentioned, Prisma will automatically add an index to your migration for unique fields. If you check the migrations sql file you'll find code for them at the bottom:
+
+```sql
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserImage_userId_key" ON "UserImage"("userId");
+```
+
+When you want to manually add an index, you can use the @@index attribute:
+
+```ts
+model Starport {
+  id         String      @id @default(cuid())
+  name       String
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
+  @@index([locationId, name])
+}
+```
+
+This will add an index on the `locationId` foreign key and the `name` field. This type of index would be useful if you wanted to look up star ports by their locationId and then sort them by name.
+
+You also have options to name the index, and the sort order for the index as well. You can read more about that in [the Prisma docs](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#index).
+
+#### Running SQL commands
+
+So far, we've only run SQL commands through Prisma. You can continue to do this if you like. For example, you could create a new file:
+
+```ts
+import { PrismaClient } from "@prisma/client"
+
+const prisma = new PrismaClient()
+
+const result = await prisma.$queryRaw`
+EXPLAIN QUERY PLAN
+SELECT * from note where ownerId = 1
+`
+console.log(result)
+```
+
+This will work just fine.
+
+However, if you'd like to run SQL commands directly against the database, you will need to [download and install the `sqlite3` CLI](https://www.sqlite.org/download.html).
+
+I personally use [Homebrew](https://brew.sh/) for doing this on macOS. If you're on Windows, please make a suggestion here for how to do this!
+Installation on Ubuntu & Debian distributions:
+
+```sh
+sudo apt-get update
+sudo apt-get install sqlite3
+```
+
+Check version to confirm installation:
+
+```sh
+sqlite3 --version
+```
+
+Once you have that installed, then you can run `sqlite3` from the command line:
+
+```sh
+sqlite3 ./prisma/data.db
+
+sqlite> EXPLAIN QUERY PLAN SELECT * from note where ownerId = 1;
+```
+
+#### Conclusion
+
+There's much more to indexes and optimizations (like SQLite's [covering index](https://www.sqlite.org/queryplanner.html) feature) and understanding SQLite's [query optimizer](https://www.sqlite.org/optoverview.html). But for most of you building regular web apps, you don't need to go quite that deep unless you really want to.
+
+-   [📜 Prisma Schema: Defining an Index](https://www.prisma.io/docs/concepts/components/prisma-schema/data-model#defining-an-index)
+-   [📜 Prisma API Docs: @@index](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#index)
+
 ### 3.9.1 Foreign Keys
 
+👨‍💼 I'm against pre-mature optimization as much as the next person, but I also like to apply best practices when I'm aware of them. It sounds like adding an index for our foreign keys is a generally good idea, so let's go ahead and do that.
+
+Before we do, let's see what SQLite will do with our typical query using the EXPLAIN QUERY PLAN command.
+
+For methods on how to run this command, see the "Running SQL commands" section of the background information for this exercise.
+
+🐨 Execute this command:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT * from note where ownerId = 1;
+```
+
+This gives us the following output:
+
+```sh
+QUERY PLAN
+`--SCAN note
+```
+
+That `SCAN` without an index says we're going to be reading every row in the note database looking for the ones that match our ownerId. Once we get a lot of notes, this could definitely end up being slow.
+
+This applies to all our foreign keys as well. Everywhere we are using the `@relation` attribute should have an index for the foreign key. Let's add those.
+
+🐨 Once you're done updating the `schema.prisma` file, go ahead and create the migration script:
+
+🐨 Once you're done updating the `schema.prisma` file, go ahead and create the migration script:
+
+```
+npx prisma migrate dev
+```
+
+🐨 Once you've done that, try running the `EXPLAIN QUERY PLAN` command again.
+
+You should see something like this:
+
+```sh
+QUERY PLAN
+`--SEARCH note USING INDEX Note_ownerId_idx (ownerId=?)
+```
+
+Much better! Now we don't have to read every note to find the ones that match our `ownerId`. Instead the database will reference the index and only read those rows. This will help our CPU and memory utilization for these queries.
+
+#### Conclusion
+
+👨‍💼 Adding indexes to foreign keys is a no-brainer 99% of the time. For very small tables it's probably not worth it, but even with small tables it's not going to hurt anyway.
+
+But we're not done. We've got an actual major performance issue with our user search query we need to address.
+
 ### 3.9.2 Multi-Column Index
+
+👨‍💼 As we've accumulated more and more users who have more and more notes, we've found that our query for the user list is getting slower and slower and using more and more memory and CPU. We need to optimize this query.
+
+I need you to do some analysis on the query and determine what indexes we need to add to optimize it.
+
+🐨 Before you go straight to making the **one line code change** in , please read through these instructions to do some analysis.
+
+If you'd like to observe the performance issue, you can update the seed script to generate more users and more notes per user. This could make the seed script take a **very very** long time (several minutes). You should notice major slow downs by having 15000 users each with 200-300 notes. You can also comment out the images bit if you want it to run faster since images shouldn't affect this. If you do this, a query with no search term should take ~8 seconds.
+
+#### Identify the problem query
+
+If you run the query by opening, you should see the query that was executed in the terminal output. It should log something like this:
+
+```sql
+SELECT user.id, user.username, user.name, image.id AS imageId
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+WHERE user.username LIKE ?
+OR user.name LIKE ?
+ORDER BY (
+        SELECT updatedAt
+        FROM Note
+        WHERE ownerId = user.id
+        ORDER BY updatedAt DESC
+        LIMIT 1
+) DESC
+LIMIT 50;
+```
+
+If you seeded your database with lots of data, you should also notice it took a long time for your data to come back. Yikes!
+
+#### Analyze the problem query
+
+The `?` symbols in that query represent interpolated values. To use this query in the sqlite EXPLAIN QUERY PLAN command, we need to replace those with real values. So, let's run this query with some values:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name, image.id AS imageId
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+WHERE user.username LIKE "%kody%"
+OR user.name LIKE "%kody%"
+ORDER BY (
+        SELECT updatedAt
+        FROM Note
+        WHERE ownerId = user.id
+        ORDER BY updatedAt DESC
+        LIMIT 1
+) DESC
+LIMIT 50;
+```
+
+That gives us this output:
+
+```sh
+QUERY PLAN
+|--SCAN user
+|--SEARCH image USING INDEX UserImage_userId_key (userId=?) LEFT-JOIN
+|--CORRELATED SCALAR SUBQUERY 1
+|  |--SEARCH Note USING INDEX Note_ownerId_idx (ownerId=?)
+|  `--USE TEMP B-TREE FOR ORDER BY
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+Huh... Yeah, there are a couple things going on in there. Let's build up the query a bit at a time so we can talk about each bit.
+
+🐨 Let's start with this:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name
+FROM User AS user
+LIMIT 50;
+```
+
+That should give you this:
+
+```sh
+QUERY PLAN
+`--SCAN user
+```
+
+Remember what a SCAN with no index means? It says "read every record." But it's only happening because there's no `WHERE` or `ORDER BY` clause.
+
+🐨 Add an `ORDER BY` clause:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name
+FROM User AS user
+ORDER BY user.username
+LIMIT 50;
+```
+
+```sh
+QUERY PLAN
+`--SCAN user USING INDEX User_username_key
+```
+
+Great, we're using an index, so that'll be much more efficient.
+
+🐨 Let's try it out with the name column (which is not indexed):
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name
+FROM User AS user
+ORDER BY user.name
+LIMIT 50;
+```
+
+This gives us:
+
+```sh
+QUERY PLAN
+|--SCAN user
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+So here's something new. Because the `user.name` column is not indexed, the database has to scan the user without an index, but in order to sort the data by `user.name`, it has to store all the user's names in a temporary "B-TREE" data structure so it can do the sorting for the order by. This is going to eat up some memory for the space for the data structure, and CPU for performing the comparison.
+
+But we're getting side-tracked. We're not ordering by the user's name. Let's get back on track.
+
+🐨 We'll add back the `ORDER BY user.username` for a second so we can see what the `LEFT JOIN` does to our query:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+ORDER BY user.username
+LIMIT 50;
+```
+
+And that gives us:
+
+```sql
+QUERY PLAN
+`--SCAN user USING INDEX User_username_key
+```
+
+At first this may surprise you, but the optimizer has determined that it can skip the LEFT JOIN entirely because we're not referencing it anywhere else in the query.
+
+🐨 Add `image.id` in the select
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name, image.id as imageId
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+ORDER BY user.username
+LIMIT 50;
+```
+
+That will give us:
+
+```sh
+QUERY PLAN
+|--SCAN user USING INDEX User_username_key
+`--SEARCH image USING INDEX UserImage_userId_key (userId=?) LEFT-JOIN
+```
+
+Super, with that we get a "SEARCH" using an index on the foreign key, so that should be quick enough. This is because the `ON` predicate is on the indexed column.
+
+🐨 Alrighty, let's add the `WHERE` clause with the `LIKE` in:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name, image.id as imageId
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+WHERE user.username LIKE '%kody%'
+ORDER BY user.username
+LIMIT 50;
+```
+
+```sh
+QUERY PLAN
+|--SCAN user USING INDEX User_username_key
+`--SEARCH image USING INDEX UserImage_userId_key (userId=?) LEFT-JOIN
+```
+
+Whoops! It is using an index for the `ORDER BY`, but it's not telling us that it's likely not using an index for the LIKE (according to [the rules](https://www.sqlite.org/optoverview.html#the_like_optimization)).
+
+🐨 Let's add the `OR` for the `user.name`:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name, image.id as imageId
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+WHERE user.username LIKE '%kody%'
+OR user.name LIKE '%kody%'
+ORDER BY user.username
+LIMIT 50;
+```
+
+```sh
+QUERY PLAN
+|--SCAN user USING INDEX User_username_key
+`--SEARCH image USING INDEX UserImage_userId_key (userId=?) LEFT-JOIN
+```
+
+It's still leveraging the index for the `ORDER BY`, but it's not telling us that it's likely not using an index for the `LIKE`.
+
+🐨 Before we put the subquery in the `ORDER BY`, let's look at the subquery on its own:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT updatedAt
+FROM Note
+WHERE ownerId = "some_id"
+ORDER BY updatedAt DESC
+LIMIT 1;
+```
+
+```sql
+QUERY PLAN
+|--SEARCH Note USING INDEX Note_ownerId_idx (ownerId=?)
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+Here we are again with the `TEMP B-TREE` for the `ORDER BY.` This is because the `updatedAt` column is not indexed. So for _every_ note for the user, it has to store the `updatedAt` in a temporary data structure so it can sort it to find the one that was most recently updated. Definitely something fishy here...
+
+🐨 Now, let's put that query as a subquery in the `ORDER BY`:
+
+```sh
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name, image.id as imageId
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+WHERE user.username LIKE '%kody%'
+OR user.name LIKE '%kody%'
+ORDER BY (
+  SELECT updatedAt
+  FROM Note
+  WHERE ownerId = user.id
+  ORDER BY updatedAt DESC
+  LIMIT 1
+) DESC
+LIMIT 50;
+```
+
+```sh
+QUERY PLAN
+|--SCAN user
+|--SEARCH image USING INDEX UserImage_userId_key (userId=?) LEFT-JOIN
+|--CORRELATED SCALAR SUBQUERY 1
+|  |--SEARCH Note USING INDEX Note_ownerId_idx (ownerId=?)
+|  `--USE TEMP B-TREE FOR ORDER BY
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+Now `EXPLAIN` is (finally) showing that we're scanning because there's no index in use on the user table (it was scanning the whole time, silly). But, it's now also showing a `TEMP B-TREE` for the `ORDER BY`, and because that's a subquery, that will happen for _every user_ 😱. Very very bad.
+
+We need to optimize the `ORDER BY` sub query, and then the whole query should run much faster. Because that query is against the `Note` table, the index we need will go on the Note model.
+
+#### Identify the index
+
+Remember the photo album metaphor? In that example, the first folder you want is the one where you're trying to filter things. That's often the column most frequently used in your queries. While individual indexes can certainly be beneficial for corresponding single-column queries, for multi-column queries, a well-designed composite index is often more efficient.
+
+Generally, in a composite (multi-column) index, start with the column that is most frequently used in your `WHERE` clause and can be most utilized, then add frequently `ORDER BY` columns to the end of the index.
+This often means you start with "bigger buckets" and get more specific as you go.
+
+While these rules are not hard and fast, they are a good starting point. You should always test your queries to see if they're using the indexes you expect them to use and if they're performing well.
+
+So in our case, we look at the `WHERE` and then the `ORDER BY` to determine our indexes. We're referencing the `updatedAt` in the `ORDER BY` and the `ownerId` in the `WHERE`. We need to combine these columns in a single index to optimize this query.
+
+🐨 So, let's sort first by the `ownerId` and then by the `updatedAt`.
+
+🐨 Open up the `prisma/schema.prisma` file and add an index for the `ownerId` and `updatedAt`.
+
+🐨 Now run:
+
+```sh
+npx prisma db push
+```
+
+Remember, this does not update your migration file. You'll want to do that when you're ready to commit to this. We're just testing things out for now.
+If you'd like, you can execute this command in SQLite and it will show you all the indexes active in the database:
+
+```sh
+.indexes
+```
+
+That should give you something like this:
+
+```sh
+NoteImage_noteId_idx                   sqlite_autoindex_NoteImage_1
+Note_ownerId_idx                       sqlite_autoindex_Note_1
+Note_ownerId_updatedAt_idx             sqlite_autoindex_UserImage_1
+UserImage_userId_key                   sqlite_autoindex_User_1
+User_email_key                         sqlite_autoindex__prisma_migrations_1
+User_username_key
+```
+
+Our new one is the one called `Note_ownerId_updatedAt_idx`!
+
+🐨 Now, let's run the query plan again:
+
+```sql
+EXPLAIN QUERY PLAN
+SELECT user.id, user.username, user.name, image.id as imageId
+FROM User AS user
+LEFT JOIN UserImage AS image ON user.id = image.userId
+WHERE user.username LIKE '%kody%'
+OR user.name LIKE '%kody%'
+ORDER BY (
+   SELECT updatedAt
+   FROM Note
+   WHERE ownerId = user.id
+   ORDER BY updatedAt DESC
+   LIMIT 1
+) DESC
+LIMIT 50;
+```
+
+```sh
+QUERY PLAN
+|--SCAN user
+|--SEARCH image USING INDEX UserImage_userId_key (userId=?) LEFT-JOIN
+|--CORRELATED SCALAR SUBQUERY 1
+|  `--SEARCH Note USING COVERING INDEX Note_ownerId_updatedAt_idx (ownerId=?)
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+Sweet! We've just eliminated the `TEMP B-TREE` on the Note table! And now our Note Search is using our new index (learn more about what "covering index means" below). This is a huge win because the query doesn't have to read every note for every user!
+Note we do still have a non-indexed scan for the user, but based on the requirements of a wildcard prefix in the `LIKE`, an index won't help anyway.
+
+> **Incidental Covering Index**:
+> If you're curious, we just happen to have what's known as a "covering index" here, which means SQLite doesn't even have to read any records from the Note table. It can just read the index and get the data it needs. This is because all the columns used by the query are covered by the index and is _highly_ efficient. You can learn more about this from [the SQLite Query Planner docs](https://www.sqlite.org/queryplanner.html#_covering_indexes)
+
+🐨 Now go ahead and try searching users again:
+
+Checking our logs, we're getting about 30ms per query when there's no search term, and just a couple milliseconds when there is a search term. Going from 8 seconds to 30ms is over 250x faster! Nice!
+
+#### Conclusion
+
+👨‍💼 I know that was a lot of work for a single line code change, but honestly a lot of the time, performance work is like that.
+
+And this made a _huge_ impact. We were thinking about adding a couple Redis clusters and pumping up the specs of our server to deal with this slow query and now we don't have to bother because we have a good index. You've just saved us many many dollars. Here, have a raise. 🤑
+
+Great work!
