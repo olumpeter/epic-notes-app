@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs } from "@remix-run/node"
+import { data, type LoaderFunctionArgs } from "@remix-run/node"
 import {
     Link,
     NavLink,
@@ -6,22 +6,25 @@ import {
     useLoaderData,
 } from "@remix-run/react"
 import { GeneralErrorBoundary } from "~/components/error-boundary"
+import { Icon } from "~/components/ui/icon"
 import { prisma } from "~/utils/db.server"
 import { cn, getUserImgSrc, invariantResponse } from "~/utils/misc"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    const owner = await prisma.user.findUnique({
-        where: { username: params.username },
+    const owner = await prisma.user.findFirst({
         select: {
+            id: true,
             name: true,
             username: true,
             image: { select: { id: true } },
             notes: { select: { id: true, title: true } },
         },
+        where: { username: params.username },
     })
+
     invariantResponse(owner, "Owner not found", { status: 404 })
 
-    return { owner } as const
+    return { owner }
 }
 
 export default function NotesRoute() {
@@ -29,10 +32,11 @@ export default function NotesRoute() {
     const ownerDisplayName = data.owner.name ?? data.owner.username
     const navLinkDefaultClassName =
         "line-clamp-2 block rounded-l-full py-2 pl-8 pr-6 text-base lg:text-xl"
+
     return (
         <main className="container flex h-full min-h-[400px] px-0 pb-12 md:px-8">
-            <div className="grid w-full grid-cols-4 bg-muted pl-2 md:container md:mx-2 md:rounded-3xl md:pr-0">
-                <div className="relative col-span-1">
+            <div className="grid w-full grid-cols-5 bg-muted pl-2 md:container sm:grid-cols-4 md:mx-2 md:rounded-3xl md:pr-0">
+                <div className="relative col-span-2 sm:col-span-1">
                     <div className="absolute inset-0 flex flex-col">
                         <Link
                             to={`/users/${data.owner.username}`}
@@ -50,6 +54,19 @@ export default function NotesRoute() {
                             </h1>
                         </Link>
                         <ul className="overflow-y-auto overflow-x-hidden pb-12">
+                            <li className="p-1 pr-0">
+                                <NavLink
+                                    to="new"
+                                    className={({ isActive }) =>
+                                        cn(
+                                            navLinkDefaultClassName,
+                                            isActive && "bg-accent"
+                                        )
+                                    }
+                                >
+                                    <Icon name="plus">New Note</Icon>
+                                </NavLink>
+                            </li>
                             {data.owner.notes.map((note) => (
                                 <li
                                     key={note.id}

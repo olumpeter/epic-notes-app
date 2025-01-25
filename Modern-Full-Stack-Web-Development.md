@@ -2,6 +2,8 @@
 
 # 1. 🔭 Full Stack Foundations
 
+## 1.0 Introduction
+
 You'll learn important foundational skills of web app development including:
 
 1. Styling a Web Application
@@ -2220,6 +2222,8 @@ experience when folks hit a page that doesn't exist.
 
 # 2. 📝 Professional Web Forms
 
+## 2.0 Introduction
+
 👨‍💼 Hello, my name is Peter the Product Manager. I'm here to help you get
 oriented and to give you your assignments for the day. We're going to get a new
 project for note taking off the ground. We want people to write Epic Notes 💪
@@ -4153,6 +4157,8 @@ The `max` property was renamed to `limit` in express-rate-limit. Your exercise c
 Well done 👏👏
 
 # 3. 💾 Data Modeling Deep Dive
+
+## 3.0 Introduction
 
 👨‍💼 Hello, my name is Peter the Product Manager. I'm here to help you get oriented and to give you your assignments for the day. We're going to have you working on the data for the Epic Notes app today.
 
@@ -6523,3 +6529,561 @@ Checking our logs, we're getting about 30ms per query when there's no search ter
 And this made a _huge_ impact. We were thinking about adding a couple Redis clusters and pumping up the specs of our server to deal with this slow query and now we don't have to bother because we have a good index. You've just saved us many many dollars. Here, have a raise. 🤑
 
 Great work!
+
+# 4. 🔐 Web Authentication
+
+**Take ownership of your application's authentication and authorization.**
+In this workshop, we'll learn how to implement authentication and authorization in a Full Stack Web Application. You'll learn the foundational technologies at play and built upon it to include complicated user auth flows and more.
+
+#### Prerequisites
+
+-   Some [experience with JavaScript](https://kentcdodds.com/blog/javascript-to-know-for-react)
+-   Some [experience with React](https://kcd.im/beginner-react)
+-   Some [experience with Node.js](https://nodejs.dev/en/learn)
+-   [Full Stack Foundations workshop](https://github.com/epicweb-dev/full-stack-foundations) (or similar experience)
+-   [Web Forms workshop](https://github.com/epicweb-dev/web-forms) (or similar experience)
+-   [Data Modeling workshop](https://github.com/epicweb-dev/data-modeling) (or similar experience)
+
+#### Pre-workshop Resources
+
+Here are some resources you can read before taking the workshop to get you up to speed on some of the tools and concepts we'll be covering:
+
+-   [HTTP Cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies)
+-   [Remix cookies](https://remix.run/docs/en/main/utils/cookies)
+-   [Remix sessions](https://remix.run/docs/en/main/utils/sessions)
+-   [`bcryptjs`](https://www.npmjs.com/package/bcryptjs)
+-   [What is Role-Based Access Control (RBAC)?](https://auth0.com/intro-to-iam/what-is-role-based-access-control-rbac)
+
+#### System Requirements
+
+-   [git](https://git-scm.com/) v2.18 or greater
+-   [NodeJS](https://nodejs.org/) v20 or greater
+-   [npm](https://www.npmjs.com/) v8 or greater
+
+All of these must be available in your `PATH`. To verify things are set up properly, you can run this:
+
+```sh
+git --version
+node --version
+npm --version
+```
+
+If you have trouble with any of these, learn more about the PATH environment variable and how to fix it here for [windows](https://www.howtogeek.com/118594/how-to-edit-your-system-path-for-easy-command-line-access/) or [mac/linux](http://stackoverflow.com/a/24322978/971592).
+
+#### Setup
+
+This is a pretty large project (it's actually many apps in one) so it can take several minutes to get everything set up the first time. Please have a strong network connection before running the setup and grab a snack.
+
+> **Warning**
+>
+> This repo is _very_ large. Make sure you have a good internet connection before you start the setup process. The instructions below use `--depth` to limit the amount you download, but if you have a slow connection, or you pay for bandwidth, you may want to find a place with a better connection.
+
+If you experience errors here, please open [an issue](https://github.com/epicweb-dev/web-auth/issues/new) with as many details as you can offer.
+
+#### Exercises
+
+You'll find all the exercises in the `exercises` directory. The structure of the
+workshop apps is described below, but most of the time you should be able to
+simply run the app and navigate around the different exercises using the
+application (there are even buttons to open the right exercise file right in
+your editor).
+
+The purpose of the exercise is **not** for you to work through all the material.
+It's intended to get your brain thinking about the right questions to ask me as
+_I_ walk through the material.
+
+#### Running the app
+
+To get the app up and running (and really see if it worked), run:
+
+```shell
+npm start
+```
+
+Now open your browser to the address that's logged out for you and you're good
+to get started!
+
+#### Running the tests
+
+The test script in the `package.json` runs the tests on the solutions (these
+should all pass). To run the tests against your own work, you simply open the
+problem page and click the "Test" tab.
+
+### Launching your editor
+
+The application has several buttons which will launch your editor to the right
+file. There are a lot of files in this workshop so you'll be using this feature
+a lot to get to the right place at the right time.
+
+This should just work™️, but if it doesn't it could be that our editor guessing
+isn't working for you. If that's the case, create a `.env` file in the root of
+this project and add an environment variable called `EPICSHOP_EDITOR` with the
+value being set to the path to your editor's executable. For example, if you're
+using VS Code on Windows, you'd add this to your `.env` file:
+
+```
+EPICSHOP_EDITOR="C:\Program Files\Microsoft VS Code\bin\code.cmd"
+```
+
+Make certain that if the path includes spaces that you wrap the path in quotes
+as above.
+
+#### Exercises
+
+-   `exercises/*.*/README.md`: Exercise background information
+-   `exercises/*.*/*.problem.*/README.*.md`: Problem Instructions
+-   `exercises/*.*/*.problem.*/*.tsx`: Exercise with Emoji helpers 👈 You spend
+    most of your time here.
+-   `exercises/*.*/*.solution.*/*.tsx`: Solved version
+
+The purpose of the exercise is **not** for you to work through all the material.
+It's intended to get your brain thinking about the right questions to ask me as
+_I_ walk through the material.
+
+#### Helpful Emoji 🐨 🦺 💰 📝 🦉 📜 💣 💪 🏁 👨‍💼 🚨 🧝‍♀️
+
+Each exercise has comments in it to help you get through the exercise. These fun
+emoji characters are here to help you.
+
+-   **Kody the Koala** 🐨 will tell you when there's something specific you should
+    do
+-   **Lily the Life Jacket** 🦺 will help you with any TypeScript-specific parts
+    of the exercises
+-   **Marty the Money Bag** 💰 will give you specific tips (and sometimes code)
+    along the way
+-   **Nancy the Notepad** 📝 will encourage you to take notes on what you're
+    learning
+-   **Olivia the Owl** 🦉 will give you useful tidbits/best practice notes
+-   **Dominic the Document** 📜 will give you links to useful documentation
+-   **Barry the Bomb** 💣 will be hanging around anywhere you need to blow stuff
+    up (delete code)
+-   **Matthew the Muscle** 💪 will indicate that you're working with an exercise
+-   **Chuck the Checkered Flag** 🏁 will indicate that you're working with a final
+-   **Peter the Product Manager** 👨‍💼 helps us know what our users want
+-   **Alfred the Alert** 🚨 will occasionally show up in the test failures with
+    potential explanations for why the tests are failing
+-   **Kellie the Co-worker** 🧝‍♀️ your co-worker who sometimes does work ahead of
+    your exercises
+
+#### Workshop Feedback
+
+Each exercise has an Elaboration and Feedback link. Please fill that out after
+the exercise and instruction.
+
+At the end of the workshop, please go
+[here to give overall feedback](https://docs.google.com/forms/d/e/1FAIpQLSdRmj9p8-5zyoqRzxp3UpqSbC3aFkweXvvJIKes0a5s894gzg/viewform).
+
+<!-- prettier-ignore-start -->
+[npm]: https://www.npmjs.com/
+[node]: https://nodejs.org
+[git]: https://git-scm.com/
+[build-badge]: https://img.shields.io/github/actions/workflow/status/epicweb-dev/web-auth/validate.yml?branch=main&logo=github&style=flat-square
+[build]: https://github.com/epicweb-dev/web-auth/actions?query=workflow%3Avalidate
+[license-badge]: https://img.shields.io/badge/license-GPL%203.0%20License-blue.svg?style=flat-square
+[license]: https://github.com/epicweb-dev/web-auth/blob/main/LICENSE
+[coc-badge]: https://img.shields.io/badge/code%20of-conduct-ff69b4.svg?style=flat-square
+[coc]: https://kentcdodds.com/conduct
+[win-path]: https://www.howtogeek.com/118594/how-to-edit-your-system-path-for-easy-command-line-access/
+[mac-path]: http://stackoverflow.com/a/24322978/971592
+[issue]: https://github.com/epicweb-dev/web-auth/issues/new
+<!-- prettier-ignore-end -->
+
+## 4.0 Introduction
+
+👨‍💼 Hello, my name is Peter the Product Manager. I'm here to help you get oriented and to give you your assignments for the day. We're going to have you working on authentication for the Epic Notes app today.
+
+So far any user can edit all the notes, even if they're not logged in! Obviously we need to give users an opportunity to create accounts and then lock down their data to their account. Throughout the workshop, you'll learn important foundational skills of full stack development like:
+
+1. Storing user preferences in cookies
+2. Using session storage and the "flash" pattern
+3. Using cookies to identify users
+4. Managing and safely storing passwords
+5. Securely validating passwords
+6. Managing logout and session expiration ("remember me")
+7. Locking down UI and backend routes
+8. Support Role-Based Access Control (RBAC)
+9. Support server-managed sessions
+10. Sending emails to users
+11. Building cryptographically secure verifications
+12. Support "forgot password" and reset password flows
+13. Supporting securely changing emails
+14. Adding two-factor authentication (2FA)
+15. Support verifying 2FA codes
+16. Securely disabling 2FA
+17. Supporting OAuth (social login)
+18. Handling Connection Errors
+19. Supporting Third Party Login
+20. Connection Management
+21. Redirecting third party logins with redirect Cookies
+
+It's a big job and there's lots to do, so, let's get started!
+
+Over time, some things may change in the workshop material from the videos you watch. You can learn about these changes in the `CHANGELOG.md` file of the repo.
+
+## 4.1 Cookies
+
+#### A bit of history
+
+HTTP Cookies have been around since the very beginning of the web. They were invented to solve the problem of state management in web applications. Cookies allow websites to store small pieces of data on a user's device which is then sent along with every request to the server. This enables the server to maintain session information and remember user preferences across different interactions.
+
+Cookies have become a fundamental part of web browsing and online user experiences, facilitating various functions such as session management, tracking user behavior, and personalization. However, due to privacy concerns, the use of cookies has evolved, and modern browsers provide users with more control over cookie settings, including options to block or delete cookies. Despite this, the most secure solution for managing user sessions is still to use cookies.
+
+#### GDPR
+
+A common misconception among developers is that if your site uses cookies at all, it needs to display a [GDPR](https://gdpr.eu/what-is-gdpr/) banner. This is inaccurate. The topic of GDPR is complex and beyond the scope of this workshop (feel free to talk to a lawyer if you're concerned), but in general if you avoid the use of cookies for tracking and advertising purposes, you should be fine without a consent banner.
+
+Learn more about how [There is no EU Cookie Banner Law](https://www.bitecode.dev/p/there-is-no-eu-cookie-banner-law).
+
+#### Cookies vs. Local Storage
+
+Some applications store user information (like the user's ID or preferences) in `localStorage`. This is not a secure solution, as `localStorage` can be accessed by any script running on the page.
+
+Additionally, `localStorage` is not sent with every request to the server, so the server cannot use it as part of the initial rendering of the page. This means that the page will not be able to display user-specific information until the client-side code has loaded and made a request to the server to retrieve the user's information.
+
+Bad UX. Bad Security. Don't use it for this purpose.
+
+#### How it works
+
+First, the cookie needs to be set in the browser. This can happen on the client or on the server:
+
+```ts
+// Client-side
+document.cookie = "name=John Doe"
+```
+
+`document.cookie` is a string that contains all the cookies for the current domain. [It's a funky API](https://developer.mozilla.org/en-US/docs/web/api/document/cookie). You can definitely use it directly, but if you plan to work with cookies in the browser a lot, you may consider using a library like [js-cookie](https://www.npmjs.com/package/js-cookie).
+
+Most of the time, you'll want to set the cookie on the server. This is because the server is the only place where you can securely set the cookie and you often want to set the cookie as part of the response to a request anyway.
+
+```ts
+// Server-side
+const response = new Response(body, {
+    headers: {
+        "set-cookie": "name=John Doe",
+    },
+})
+```
+
+The API is a little less funky, but the string format is the same (and that is funky too), so a library to help parse and serialize cookie values can be helpful. A popular library for this is [cookie](https://www.npmjs.com/package/cookie).
+
+When the browser receives the response, it will parse the `set-cookie` header and store the cookie in its "cookie jar". The browser will then send the cookie along with every request to the server.
+
+Browsers can have multiple cookies each with its own name and configuration. We'll discuss this configuration more in the next exercise, but one important bit of configuration for this exercise is the `path` property. This determines which requests the cookie will be sent with. For example, if the cookie is set with a path of `/admin`, it will only be sent with requests to /admin and its subpaths (`/admin/users`, `/admin/settings`, etc.) but not for requests to `/` or `/login`.
+
+### 4.1.1 Fetchers
+
+👨‍💼 To get started with cookies in our application, we're going to start with something a little lighter weight than authentication: Theme Preference.
+
+Before we get to that though, we need to wire up our `ThemeSwitch` component to make a network request.
+
+🦉 Remix's `<Form />` component resembles the regular `<form />` component which is to say that it's a mechanism for navigating with data. However, there are lots of mutations we make that don't involve a navigation.
+
+-   Navigation: Creating a GitHub issue -> Navigate to the new issue
+-   Non-Navigation: Liking a Tweet -> Update the UI to show the like
+
+In Remix, we have a `<Form />` component for navigation and `useNavigation` to have information about the current navigation. We can do this because there can only be one navigation at time. However, with non-navigation mutations, you can have many of them at once. So we need a different mechanism for handling these mutations.
+
+That mechanism is [`useFetcher`](https://remix.run/docs/en/main/hooks/use-fetcher). `useFetcher` gives us the ability to perform any kind of fetch request. It definitely can result in a `redirect`, but often does not. It still uses `loader`s for GETs and `action`s for POSTs, but all the information about the request is contained within the fetcher object itself. Here's a code snippet from the docs demonstrating the different parts of a fetcher:
+
+```tsx
+import { useFetcher } from "@remix-run/react"
+
+function SomeComponent() {
+    const fetcher = useFetcher()
+
+    // trigger the fetch with these
+    const ui = <fetcher.Form {...formOptions} />
+    // for imperative fetches:
+    useEffect(() => {
+        // to submit data
+        fetcher.submit(data, options)
+        // or to get data:
+        fetcher.load(href)
+    }, [fetcher])
+
+    // build UI with these
+    fetcher.state
+    fetcher.formMethod
+    fetcher.formAction
+    fetcher.formData
+    fetcher.formEncType
+    fetcher.data
+}
+```
+
+👨‍💼 Thanks Olivia. Because a theme switcher is not a navigation type of mutation, we'll want to use `useFetcher` to make the request. Because the mutation is made as a result of the user action, we can use `fetcher.Form` to make the request.
+
+We'll not actually get the theme to switch in this step, but you should be able to add a console.log in the action and have the request data there when you're done.
+
+`useFetcher()` and the `<Form />` component + `useNavigation` hook appear to have some overlapping use cases. If you're confused about when to use one or the other, give this quick video by [Daniel Kanem](https://www.youtube.com/watch?v=1bsNKdMiph0&t=18s) a watch:
+
+-   [📜 useFetcher](https://remix.run/docs/en/main/hooks/use-fetcher)
+
+#### Conclusion
+
+👨‍💼 Fetchers are a critical part of most applications and you'll definitely be using them quite often in your work. Now, let's use the data being submitted to our action to update the user's cookie.
+
+### 4.1.2 Theme Cookie
+
+👨‍💼 Let's start working with the theme cookie.
+
+We want the user to be able to choose between light and dark mode. Our application is already set up to handle this via a class name on the `<html>` element (put light or dark in the class name and the UI will update through the magic of CSS Custom Properties + Tailwind).
+
+So all we need to do is finish the implementation `app/utils/theme.server.ts` and then finish wiring things up in `app/root.tsx`.
+
+👨‍💼 When you've finished, you should be able to click the icon in the bottom
+right to update the theme. You'll notice a network request each time you click
+it so the server can update the cookie. You should see the `set-cookie` header
+
+-   [📜 cookie](https://www.npmjs.com/package/cookie)
+
+#### Conclusion
+
+👨‍💼 Great job! That's pretty low-level cookie management, but it's perfect
+
+🦉 One optimization we could possibly make is to change the cookie on the client and trigger a manual state update. But the benefit of the way we have it here is we can completely change the data that comes back based on the value of the cookie and if we applied that optimization we'd need to revalidate the data anyway.
+
+So we won't be making that optimization for two reasons:
+
+1. It limits our capabilities
+2. Users don't change their theme very often anyway, so it's really unnecessary.
+
+👨‍💼 Good point Olivia! That said, there is something else we can do to improve the user experience a lot. Let's do that next.
+
+### 4.1.3 Optimistic Theme
+
+👨‍💼 Users on a slow network are complaining the theme won't actually change until the network request to change it finishes. Go ahead and throttle your network speed using the browser developer tools and you'll observe that. This is a pretty poor user experience.
+
+So let's improve this by applying optimistic UI to the theme selection. What we'll do is make a `useTheme` hook that returns the value of the root loader's `data.theme`, but then we'll also search for the `fetcher` that's responsible for changing the cookie and if it's in the process of updating the theme value, we'll return that from our `useTheme` instead of the `data.theme` value.
+
+That way the theme in the UI will always be what the user selected most recently even if the network request isn't finished yet.
+
+Here's a quick example of finding the right fetcher using `useFetchers`:
+
+```jsx
+import { useFetcher, useFetchers } from "@remix-run/react"
+
+function MyComponent() {
+    const fetcher = useFetcher()
+
+    return (
+        <fetcher.Form>
+            <input type="hidden" name="candy" value="twix" />
+            <button name="intent" value="dispense-candy">
+                Dispense
+            </button>
+        </fetcher.Form>
+    )
+}
+
+function useCurrentlySubmittingCandy() {
+    const fetchers = useFetchers()
+    const candyFetcher = fetchers.find(
+        (fetcher) =>
+            fetcher.formData?.get("intent") === "dispense-candy"
+    )
+    return candyFetcher?.formData.get("candy")
+}
+```
+
+It should be noted that all fetchers on the page which have been submitted at least once, will be returned by the `useFetchers` hook, whether they're currently submitting or not. However, only those which are currently submitting will have a `formData` property. And in this example since we only care about the candy fetcher while it's submitting, we can use the `formData` property to get the value of the candy that's being dispensed.
+
+-   [📜 `useFetchers`](https://remix.run/docs/en/main/hooks/use-fetchers)
+-   [Talk: Bringing Back Progressive Enhancement](https://www.youtube.com/watch?v=EzLGleT1yrY&list=PLV5CVI1eNcJgNqzNwcs4UKrlJdhfDjshf) (walks through the concept of optimistic UI)
+
+#### Conclusion
+
+👨‍💼 Wow! That's a huge improvement for users with a slow network. And we didn't have to compromise on the capabilities of our theme solution.
+
+Cookies sure are neat!
+
+🦉 [Remix version 2.2.0](https://github.com/remix-run/remix/releases/tag/remix%402.2.0) added a new feature which makes implementing this even easier. You can now provide a `key` to the `useFetcher` hook and then use that same key to find the fetcher. So you could do something like this:
+
+Here's some updated code:
+
+```tsx
+const themeFetcherKey = "theme-fetcher"
+
+function useTheme() {
+    const data = useLoaderData<typeof loader>()
+    const themeFetcher = useFetcher<typeof action>({
+        key: themeFetcherKey,
+    })
+    const optimisticTheme = themeFetcher.formData?.get("theme")
+    if (optimisticTheme === "light" || optimisticTheme === "dark") {
+        return optimisticTheme
+    }
+    return data.theme
+}
+
+function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
+    const fetcher = useFetcher<typeof action>({
+        key: themeFetcherKey,
+    })
+    // ...
+}
+```
+
+🦉 If you want to take this further and implement the user's preference as a default theme, you can try that! It's just a little outside the scope of this auth workshop, so we'll leave that to you as a side-quest. You'll face an issue where the user's preference can't be known server-side. However, if you implement Client Hints, you can overcome that issue. Watch this tip from Kent to learn about Client hints:
+
+## 4.2 Session Storage
+
+### 4.2.1 Cookie Session Storage
+
+### 4.2.2 Session Set
+
+### 4.2.3 Session Unset
+
+### 4.2.4 Session Flash Messages
+
+## 4.3 User Session
+
+### 4.3.1 Session Storage
+
+### 4.3.2 Set the userId
+
+### 4.3.3 Load the User
+
+## 4.4 Password Management
+
+### 4.4.1 Data Model for Passwords
+
+### 4.4.2 Seeding Password Hashes
+
+### 4.4.3 Sign Up
+
+## 4.5 Login
+
+### 4.5.1 Login
+
+### 4.5.2 UI Utils
+
+## 4.6 Logout and Expiration
+
+### 4.6.1 Logout
+
+### 4.6.2 Expiration
+
+### 4.6.3 Deleted Users
+
+### 4.6.4 Automatic Logout
+
+## 4.7 Protecting Routes
+
+### 4.7.1 Require Anonymous
+
+### 4.7.2 Require Authenticated
+
+### 4.7.3 Require Authorized
+
+### 4.7.4 Redirect from Login
+
+## 4.8 Role-Based Access
+
+### 4.8.1 Roles Schema
+
+### 4.8.2 Roles Seed
+
+### 4.8.3 Delete Note
+
+### 4.8.4 Permissions Utils
+
+## 4.9 Managed Sessions
+
+### 4.9.1 Sessions Schema
+
+### 4.9.2 Auth Utils
+
+### 4.9.3 Session Cookie
+
+### 4.9.4 Delete Sessions
+
+## 4.10 Email
+
+### 4.10.1 Resend
+
+### 4.10.2 Mocks
+
+### 4.10.3 Send Email
+
+### 4.10.4 Pass Data Between Routes
+
+## 4.11 Verification
+
+### 4.11.1 Verification Schema
+
+### 4.11.2 Generate TOTP
+
+### 4.11.3 Verify Code
+
+## 4.12 Reset Password
+
+### 4.12.1 Handle Verification
+
+### 4.12.2 Reset Password
+
+## 4.13 Change Email
+
+### 4.13.1 Generate TOTP
+
+### 4.13.2 Handle Verification
+
+## 4.14 Enable Two Factor Auth
+
+### 4.15.1 Create Verification
+
+### 4.15.2 QR Code
+
+### 4.15.3 Verify Code
+
+## 4.15 Verify 2FA Code
+
+### 4.15.1 Unverified Session
+
+### 4.15.2 Handle Verification
+
+## 4.16 Disable Two Factor Auth
+
+### 4.16.1 Delete Verification
+
+### 4.16.2 Should Reverify
+
+### 4.16.3 Require Reverification
+
+### 4.16.4 Cookie Expiration Override
+
+## 4.17 OAuth
+
+### 4.17.1 Remix Auth
+
+### 4.17.2 GitHub Strategy
+
+### 4.17.3 Mock GitHub OAuth
+
+### 4.17.4 Connection Model
+
+## 4.18 Connection Errors
+
+### 4.18.1 Auth Errors
+
+### 4.18.2 Connection Exceptions
+
+## 4.19 Third Party Login
+
+### 4.19.1 Login
+
+### 4.19.2 Onboarding
+
+## 4.20 Connection Management
+
+### 4.20.1 Existing User
+
+### 4.20.2 Add Connection
+
+## 4.21 Redirect Cookie
+
+### 4.21.1 Pass Redirect URL
+
+### 4.21.2 Set Cookie
+
+### 4.21.3 Redirect

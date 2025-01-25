@@ -1,194 +1,178 @@
 import fs from "node:fs"
 import { faker } from "@faker-js/faker"
-import { UniqueEnforcer } from "enforce-unique"
 import { PrismaClient } from "@prisma/client"
 import { promiseHash } from "remix-utils/promise"
+import { createUser } from "tests/db-utils"
 
 const prisma = new PrismaClient()
 
-const uniqueUsernameEnforcer = new UniqueEnforcer()
-
-export function createUser() {
-    const firstName = faker.person.firstName()
-    const lastName = faker.person.lastName()
-
-    const username = uniqueUsernameEnforcer.enforce(() => {
-        return (
-            faker.string.alphanumeric({ length: 2 }) +
-            "_" +
-            faker.internet
-                .username({
-                    firstName: firstName.toLowerCase(),
-                    lastName: lastName.toLowerCase(),
-                })
-                .slice(0, 20)
-                .toLowerCase()
-                .replace(/[^a-z0-9_]/g, "_")
-        )
-    })
-    return {
-        username,
-        name: `${firstName} ${lastName}`,
-        email: `${username}@example.com`,
-    }
-}
-
 async function img({
     altText,
-    filePath,
+    filepath,
 }: {
     altText?: string
-    filePath: string
+    filepath: string
 }) {
     return {
         altText,
-        contentType: filePath.endsWith("png")
+        contentType: filepath.endsWith(".png")
             ? "image/png"
-            : "image.jpeg",
-        blob: await fs.promises.readFile(filePath),
+            : "image/jpeg",
+        blob: await fs.promises.readFile(filepath),
     }
 }
 
 async function seed() {
     console.log("🌱 Seeding...")
-    console.time("🌱 Database has been seeded")
+    console.time(`🌱 Database has been seeded`)
 
     console.time("🧹 Cleaned up the database...")
     await prisma.user.deleteMany()
     console.timeEnd("🧹 Cleaned up the database...")
 
-    const totalUsers = 5
+    const totalUsers = 3
     console.time(`👤 Created ${totalUsers} users...`)
     const noteImages = await Promise.all([
         img({
             altText: "a nice country house",
-            filePath: "./tests/fixtures/images/notes/0.png",
+            filepath: "./tests/fixtures/images/notes/0.png",
         }),
         img({
             altText: "a city scape",
-            filePath: "./tests/fixtures/images/notes/1.png",
+            filepath: "./tests/fixtures/images/notes/1.png",
         }),
         img({
             altText: "a sunrise",
-            filePath: "./tests/fixtures/images/notes/2.png",
+            filepath: "./tests/fixtures/images/notes/2.png",
         }),
         img({
             altText: "a group of friends",
-            filePath: "./tests/fixtures/images/notes/3.png",
+            filepath: "./tests/fixtures/images/notes/3.png",
         }),
         img({
             altText:
                 "friends being inclusive of someone who looks lonely",
-            filePath: "./tests/fixtures/images/notes/4.png",
+            filepath: "./tests/fixtures/images/notes/4.png",
         }),
         img({
             altText: "an illustration of a hot air balloon",
-            filePath: "./tests/fixtures/images/notes/5.png",
+            filepath: "./tests/fixtures/images/notes/5.png",
         }),
         img({
             altText:
                 "an office full of laptops and other office equipment that look like it was abandond in a rush out of the building in an emergency years ago.",
-            filePath: "./tests/fixtures/images/notes/6.png",
+            filepath: "./tests/fixtures/images/notes/6.png",
         }),
         img({
             altText: "a rusty lock",
-            filePath: "./tests/fixtures/images/notes/7.png",
+            filepath: "./tests/fixtures/images/notes/7.png",
         }),
         img({
             altText: "something very happy in nature",
-            filePath: "./tests/fixtures/images/notes/8.png",
+            filepath: "./tests/fixtures/images/notes/8.png",
         }),
         img({
             altText: `someone at the end of a cry session who's starting to feel a little better.`,
-            filePath: "./tests/fixtures/images/notes/9.png",
+            filepath: "./tests/fixtures/images/notes/9.png",
         }),
     ])
 
     const userImages = await Promise.all(
         Array.from({ length: 10 }, (_, index) =>
             img({
-                filePath: `./tests/fixtures/images/user/${index}.jpg`,
+                filepath: `./tests/fixtures/images/user/${index}.jpg`,
             })
         )
     )
 
     for (let index = 0; index < totalUsers; index++) {
-        await prisma.user.create({
-            select: { id: true },
-            data: {
-                ...createUser(),
-                image: {
-                    create: userImages[index % 10],
-                },
-                notes: {
-                    create: Array.from({
-                        length: faker.number.int({ min: 1, max: 3 }),
-                    }).map(() => ({
-                        title: faker.lorem.sentence(),
-                        content: faker.lorem.paragraphs(),
-                        images: {
-                            create: Array.from({
-                                length: faker.number.int({
-                                    min: 1,
-                                    max: 3,
-                                }),
-                            }).map(() => {
-                                const imgNumber = faker.number.int({
-                                    min: 0,
-                                    max: 9,
-                                })
-                                return noteImages[imgNumber]
+        const userData = createUser()
+        await prisma.user
+            .create({
+                select: { id: true },
+                data: {
+                    ...userData,
+                    image: { create: userImages[index % 10] },
+                    notes: {
+                        create: Array.from({
+                            length: faker.number.int({
+                                min: 2,
+                                max: 4,
                             }),
-                        },
-                    })),
+                        }).map(() => ({
+                            title: faker.lorem
+                                .sentence()
+                                .slice(0, 20)
+                                .trim(),
+                            content: faker.lorem.paragraphs(),
+                            images: {
+                                create: Array.from({
+                                    length: faker.number.int({
+                                        min: 1,
+                                        max: 3,
+                                    }),
+                                }).map(() => {
+                                    const imgNumber =
+                                        faker.number.int({
+                                            min: 0,
+                                            max: 9,
+                                        })
+                                    return noteImages[imgNumber]
+                                }),
+                            },
+                        })),
+                    },
                 },
-            },
-        })
+            })
+            .catch((e) => {
+                console.error("Error creating a user:", e)
+                return null
+            })
     }
     console.timeEnd(`👤 Created ${totalUsers} users...`)
 
-    console.time(`🐨 Created user "kody"`)
+    console.time(`🐨 Created admin user "kody"`)
 
     const kodyImages = await promiseHash({
         kodyUser: img({
-            filePath: "./tests/fixtures/images/user/kody.png",
+            filepath: "./tests/fixtures/images/user/kody.png",
         }),
         cuteKoala: img({
             altText: "an adorable koala cartoon illustration",
-            filePath:
+            filepath:
                 "./tests/fixtures/images/kody-notes/cute-koala.png",
         }),
         koalaEating: img({
             altText:
                 "a cartoon illustration of a koala in a tree eating",
-            filePath:
+            filepath:
                 "./tests/fixtures/images/kody-notes/koala-eating.png",
         }),
         koalaCuddle: img({
             altText: "a cartoon illustration of koalas cuddling",
-            filePath:
+            filepath:
                 "./tests/fixtures/images/kody-notes/koala-cuddle.png",
         }),
         mountain: img({
             altText: "a beautiful mountain covered in snow",
-            filePath:
+            filepath:
                 "./tests/fixtures/images/kody-notes/mountain.png",
         }),
         koalaCoder: img({
             altText: "a koala coding at the computer",
-            filePath:
+            filepath:
                 "./tests/fixtures/images/kody-notes/koala-coder.png",
         }),
         koalaMentor: img({
             altText:
                 "a koala in a friendly and helpful posture. The Koala is standing next to and teaching a woman who is coding on a computer and shows positive signs of learning and understanding what is being explained.",
-            filePath:
+            filepath:
                 "./tests/fixtures/images/kody-notes/koala-mentor.png",
         }),
         koalaSoccer: img({
             altText:
                 "a cute cartoon koala kicking a soccer ball on a soccer field ",
-            filePath:
+            filepath:
                 "./tests/fixtures/images/kody-notes/koala-soccer.png",
         }),
     })
@@ -196,6 +180,7 @@ async function seed() {
     await prisma.user.create({
         select: { id: true },
         data: {
+            id: "clm7vpwdy001ix76hu0czjiqs",
             email: "kody@kcd.dev",
             username: "kody",
             name: "Kody",
@@ -306,14 +291,14 @@ async function seed() {
             },
         },
     })
-    console.timeEnd(`🐨 Created user "kody"`)
+    console.timeEnd(`🐨 Created admin user "kody"`)
 
     console.timeEnd(`🌱 Database has been seeded`)
 }
 
 seed()
     .catch((e) => {
-        console.log(e)
+        console.error(e)
         process.exit(1)
     })
     .finally(async () => {

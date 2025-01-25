@@ -1,57 +1,104 @@
-import type {
-    ActionFunctionArgs,
-    LoaderFunctionArgs,
-    MetaFunction,
+import { useForm } from "@conform-to/react"
+import { getFieldsetConstraint, parse } from "@conform-to/zod"
+import {
+    data,
+    redirect,
+    type ActionFunctionArgs,
+    type LoaderFunctionArgs,
 } from "@remix-run/node"
-import { Form, redirect, useLoaderData } from "@remix-run/react"
-import { Link } from "@remix-run/react"
-
-import { type loader as notesLoader } from "./users.$username_.notes"
-import { prisma } from "~/utils/db.server"
-import { floatingToolbarClassName } from "~/components/floating-toolbar"
-import { Button } from "~/components/ui/button"
-import { getNoteImgSrc, invariantResponse } from "~/utils/misc"
-import { GeneralErrorBoundary } from "~/components/error-boundary"
-// import { csrf, validateCSRF } from "~/utils/csrf.server"
-// import { CSRFError } from "remix-utils/csrf/server"
+import {
+    Form,
+    Link,
+    useActionData,
+    useLoaderData,
+    type MetaFunction,
+} from "@remix-run/react"
+import { formatDistanceToNow } from "date-fns"
 import { AuthenticityTokenInput } from "remix-utils/csrf/react"
+import { z } from "zod"
+import { GeneralErrorBoundary } from "~/components/error-boundary"
+import { floatingToolbarClassName } from "~/components/floating-toolbar"
+import { ErrorList } from "~/components/forms"
+import { Button } from "~/components/ui/button"
+import { Icon } from "~/components/ui/icon"
+import { StatusButton } from "~/components/ui/status-button"
+import { validateCSRF } from "~/utils/csrf.server"
+import { prisma } from "~/utils/db.server"
+import {
+    getNoteImgSrc,
+    invariantResponse,
+    useIsPending,
+} from "~/utils/misc"
+import { type loader as notesLoader } from "./users.$username_.notes"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    const note = await prisma.note.findFirst({
+    const note = await prisma.note.findUnique({
         where: { id: params.noteId },
         select: {
+            id: true,
             title: true,
             content: true,
-            images: { select: { id: true, altText: true } },
+            ownerId: true,
+            updatedAt: true,
+            images: {
+                select: {
+                    id: true,
+                    altText: true,
+                },
+            },
         },
     })
 
-    invariantResponse(note, "Note not found", { status: 404 })
+    invariantResponse(note, "Not found", { status: 404 })
 
-    return { note } as const
+    const date = new Date(note.updatedAt)
+    const timeAgo = formatDistanceToNow(date)
+
+    return {
+        note,
+        timeAgo,
+    } as const
 }
+
+const DeleteFormSchema = z.object({
+    intent: z.literal("delete-note"),
+    noteId: z.string(),
+})
 
 export async function action({
-    params,
     request,
+    params,
 }: ActionFunctionArgs) {
-    invariantResponse(params.noteId, "noteId param is required")
-
     const formData = await request.formData()
-    // await validateCSRF(formData, request.headers)
-    const intent = formData.get("intent")
-
-    invariantResponse(intent === "delete", "Invalid intent", {
-        status: 400,
+    await validateCSRF(formData, request.headers)
+    const submission = parse(formData, {
+        schema: DeleteFormSchema,
     })
+    if (submission.intent !== "submit") {
+        return { status: "idle", submission } as const
+    }
+    if (!submission.value) {
+        return data({ status: "error", submission } as const, {
+            status: 400,
+        })
+    }
 
-    await prisma.note.delete({ where: { id: params.noteId } })
+    const { noteId } = submission.value
 
-    return redirect(`/users/${params.username}/notes`)
+    const note = await prisma.note.findFirst({
+        select: { id: true, owner: { select: { username: true } } },
+        where: { id: noteId, owner: { username: params.username } },
+    })
+    invariantResponse(note, "Not found", { status: 404 })
+
+    await prisma.note.delete({ where: { id: note.id } })
+
+    return redirect(`/users/${note.owner.username}/notes`)
 }
 
-export default function SomeNoteId() {
+export default function NoteRoute() {
     const data = useLoaderData<typeof loader>()
+
     return (
         <div className="absolute inset-0 flex flex-col px-10">
             <h2 className="mb-2 pt-12 text-h2 lg:mb-6">
@@ -76,45 +123,96 @@ export default function SomeNoteId() {
                 </p>
             </div>
             <div className={floatingToolbarClassName}>
-                <AuthenticityTokenInput />
-                <Form method="post">
+                <span className="text-sm text-foreground/90 max-[524px]:hidden">
+                    <Icon name="clock" className="scale-125">
+                        {data.timeAgo} ago
+                    </Icon>
+                </span>
+                <div className="grid flex-1 grid-cols-2 justify-end gap-2 min-[525px]:flex md:gap-4">
+                    <DeleteNote id={data.note.id} />
                     <Button
-                        type="submit"
-                        name="intent"
-                        value="delete"
-                        variant="destructive"
+                        asChild
+                        className="min-[525px]:max-md:aspect-square min-[525px]:max-md:px-0"
                     >
-                        Delete
+                        <Link to="edit">
+                            <Icon
+                                name="pencil-1"
+                                className="scale-125 max-md:scale-150"
+                            >
+                                <span className="max-md:hidden">
+                                    Edit
+                                </span>
+                            </Icon>
+                        </Link>
                     </Button>
-                </Form>
-                <Button asChild>
-                    <Link to="edit">Edit</Link>
-                </Button>
+                </div>
             </div>
         </div>
     )
 }
 
+export function DeleteNote({ id }: { id: string }) {
+    const actionData = useActionData<typeof action>()
+    const isPending = useIsPending()
+    const [form] = useForm({
+        id: "delete-note",
+        lastSubmission: actionData?.submission,
+        constraint: getFieldsetConstraint(DeleteFormSchema),
+        onValidate({ formData }) {
+            return parse(formData, { schema: DeleteFormSchema })
+        },
+    })
+
+    return (
+        <Form method="post" {...form.props}>
+            <AuthenticityTokenInput />
+            <input type="hidden" name="noteId" value={id} />
+            <StatusButton
+                type="submit"
+                name="intent"
+                value="delete-note"
+                variant="destructive"
+                status={
+                    isPending
+                        ? "pending"
+                        : actionData?.status ?? "idle"
+                }
+                disabled={isPending}
+                className="w-full max-md:aspect-square max-md:px-0"
+            >
+                <Icon
+                    name="trash"
+                    className="scale-125 max-md:scale-150"
+                >
+                    <span className="max-md:hidden">Delete</span>
+                </Icon>
+            </StatusButton>
+            <ErrorList errors={form.errors} id={form.errorId} />
+        </Form>
+    )
+}
+
 export const meta: MetaFunction<
     typeof loader,
-    { "/routes/users.$username_.notes": typeof notesLoader }
+    { "routes/users+/$username_+/notes": typeof notesLoader }
 > = ({ data, params, matches }) => {
     const notesMatch = matches.find(
-        (m) => m.id === "/routes/users.$username_.notes"
+        (m) => m.id === "routes/users+/$username_+/notes"
     )
-    const displayName = notesMatch?.data.owner.name ?? params.username
+    const displayName =
+        notesMatch?.data?.owner.name ?? params.username
     const noteTitle = data?.note.title ?? "Note"
-    const noteContentSummary =
-        data && data?.note.content.length > 100
+    const noteContentsSummary =
+        data && data.note.content.length > 100
             ? data?.note.content.slice(0, 97) + "..."
-            : data?.note.content
+            : "No content"
     return [
         {
             title: `${noteTitle} | ${displayName}'s Notes | Epic Notes`,
         },
         {
             name: "description",
-            content: noteContentSummary,
+            content: noteContentsSummary,
         },
     ]
 }

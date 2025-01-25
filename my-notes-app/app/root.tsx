@@ -1,34 +1,43 @@
-import * as React from "react"
 import os from "node:os"
+import { useForm } from "@conform-to/react"
+import { parse } from "@conform-to/zod"
 import { cssBundleHref } from "@remix-run/css-bundle"
-import type {
-    LinksFunction,
-    LoaderFunctionArgs,
-    MetaFunction,
-} from "@remix-run/node"
 import {
     data,
+    type LoaderFunctionArgs,
+    type ActionFunctionArgs,
+    type LinksFunction,
+} from "@remix-run/node"
+import {
     Link,
     Links,
     Meta,
     Outlet,
     Scripts,
     ScrollRestoration,
+    useFetcher,
+    useFetchers,
     useLoaderData,
     useMatches,
+    type MetaFunction,
 } from "@remix-run/react"
 import { AuthenticityTokenProvider } from "remix-utils/csrf/react"
-
-import tailwindStylesheetUrl from "~/styles/tailwind.css?url"
-import faviconAssetUrl from "~/assets/favicon.svg?url"
-import fontStylesUrl from "~/styles/font.css?url"
-import { GeneralErrorBoundary } from "./components/error-boundary"
-import { honeypot } from "./utils/honeypot.server"
 import { HoneypotProvider } from "remix-utils/honeypot/react"
-import { csrf } from "./utils/csrf.server"
+import { z } from "zod"
+import faviconAssetUrl from "./assets/favicon.svg"
+import { GeneralErrorBoundary } from "./components/error-boundary"
+import { ErrorList } from "./components/forms"
 import { SearchBar } from "./components/search-bar"
-
-// import "~/styles/global.css"
+import { Spacer } from "./components/spacer"
+import { Button } from "./components/ui/button"
+import { Icon } from "./components/ui/icon"
+import fontStylesUrl from "./styles/font.css?url"
+import tailwindStylesheetUrl from "./styles/tailwind.css?url"
+import { csrf } from "./utils/csrf.server"
+import { getEnv } from "./utils/env.server"
+import { honeypot } from "./utils/honeypot.server"
+import { invariantResponse } from "./utils/misc"
+import { getTheme, setTheme, type Theme } from "./utils/theme.server"
 
 export const links: LinksFunction = () => {
     return [
@@ -51,20 +60,19 @@ export const links: LinksFunction = () => {
     ]
 }
 
-export const meta: MetaFunction = () => {
-    return [
-        { title: "Epic Notes" },
-        { name: "description", content: "Your own captain's log" },
-    ]
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
-    const honeyProps = honeypot.getInputProps()
     const [csrfToken, csrfCookieHeader] = await csrf.commitToken(
         request
     )
+    const honeyProps = honeypot.getInputProps()
     return data(
-        { username: os.userInfo().username, honeyProps, csrfToken },
+        {
+            username: os.userInfo().username,
+            theme: getTheme(request),
+            ENV: getEnv(),
+            csrfToken,
+            honeyProps,
+        },
         {
             headers: csrfCookieHeader
                 ? { "set-cookie": csrfCookieHeader }
@@ -73,9 +81,51 @@ export async function loader({ request }: LoaderFunctionArgs) {
     )
 }
 
-function Document({ children }: { children: React.ReactNode }) {
+const ThemeFormSchema = z.object({
+    theme: z.enum(["light", "dark"]),
+})
+
+export async function action({ request }: ActionFunctionArgs) {
+    const formData = await request.formData()
+    invariantResponse(
+        formData.get("intent") === "update-theme",
+        "Invalid intent",
+        { status: 400 }
+    )
+    const submission = parse(formData, {
+        schema: ThemeFormSchema,
+    })
+    if (submission.intent !== "submit") {
+        return { status: "success", submission } as const
+    }
+    if (!submission.value) {
+        return data({ status: "error", submission } as const, {
+            status: 400,
+        })
+    }
+
+    const { theme } = submission.value
+    const responseInit = {
+        headers: { "set-cookie": setTheme(theme) },
+    }
+
+    return data({ success: true, submission }, responseInit)
+}
+
+function Document({
+    children,
+    theme,
+    env,
+}: {
+    children: React.ReactNode
+    theme?: Theme
+    env?: Record<string, string>
+}) {
     return (
-        <html lang="en" className="h-full overflow-x-hidden">
+        <html
+            lang="en"
+            className={`${theme} h-full overflow-x-hidden`}
+        >
             <head>
                 <Meta />
                 <meta charSet="utf-8" />
@@ -87,6 +137,11 @@ function Document({ children }: { children: React.ReactNode }) {
             </head>
             <body className="flex h-full flex-col justify-between bg-background text-foreground">
                 {children}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `window.ENV = ${JSON.stringify(env)}`,
+                    }}
+                />
                 <ScrollRestoration />
                 <Scripts />
             </body>
@@ -95,16 +150,16 @@ function Document({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-    // throw new Error('🐨 root component error')
     const data = useLoaderData<typeof loader>()
+    const theme = useTheme()
     const matches = useMatches()
     const isOnSearchPage = matches.find(
         (m) => m.id === "routes/users._index"
     )
     return (
-        <Document>
-            <header className="container mx-auto py-6">
-                <nav className="flex justify-between gap-6">
+        <Document theme={theme} env={data.ENV}>
+            <header className="container px-6 py-4 sm:px-8 sm:py-6">
+                <nav className="flex items-center justify-between gap-4 sm:gap-6">
                     <Link to="/">
                         <div className="font-light">epic</div>
                         <div className="font-bold">notes</div>
@@ -114,9 +169,11 @@ function App() {
                             <SearchBar status="idle" />
                         </div>
                     )}
-                    <Link className="underline" to="users/kody/notes">
-                        Kody's Notes
-                    </Link>
+                    <div className="flex items-center gap-10">
+                        <Button asChild variant="default" size="sm">
+                            <Link to="/login">Log In</Link>
+                        </Button>
+                    </div>
                 </nav>
             </header>
 
@@ -124,14 +181,17 @@ function App() {
                 <Outlet />
             </div>
 
-            <div className="container mx-auto flex justify-between">
+            <div className="container flex justify-between">
                 <Link to="/">
                     <div className="font-light">epic</div>
                     <div className="font-bold">notes</div>
                 </Link>
-                <p>Built with ♥️ by {data.username}</p>
+                <div className="flex items-center gap-2">
+                    <p>Built with ♥️ by {data.username}</p>
+                    <ThemeSwitch userPreference={theme} />
+                </div>
             </div>
-            <div className="h-5" />
+            <Spacer size="3xs" />
         </Document>
     )
 }
@@ -139,12 +199,77 @@ function App() {
 export default function AppWithProviders() {
     const data = useLoaderData<typeof loader>()
     return (
-        <AuthenticityTokenProvider token={data.csrfToken}>
-            <HoneypotProvider {...data.honeyProps}>
+        <HoneypotProvider {...data.honeyProps}>
+            <AuthenticityTokenProvider token={data.csrfToken}>
                 <App />
-            </HoneypotProvider>
-        </AuthenticityTokenProvider>
+            </AuthenticityTokenProvider>
+        </HoneypotProvider>
     )
+}
+
+function useTheme() {
+    const data = useLoaderData<typeof loader>()
+    const fetchers = useFetchers()
+    const themeFetcher = fetchers.find(
+        (fetcher) =>
+            fetcher.formData?.get("intent") === "update-theme"
+    )
+    const optimisticTheme = themeFetcher?.formData?.get("theme")
+    if (optimisticTheme === "light" || optimisticTheme === "dark") {
+        return optimisticTheme
+    }
+    return data.theme
+}
+
+function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
+    const fetcher = useFetcher<typeof action>()
+
+    const [form] = useForm({
+        id: "theme-switch",
+        lastSubmission: fetcher.data?.submission,
+        onValidate({ formData }) {
+            return parse(formData, { schema: ThemeFormSchema })
+        },
+    })
+
+    const mode = userPreference ?? "light"
+    const nextMode = mode === "light" ? "dark" : "light"
+    const modeLabel = {
+        light: (
+            <Icon name="sun">
+                <span className="sr-only">Light</span>
+            </Icon>
+        ),
+        dark: (
+            <Icon name="moon">
+                <span className="sr-only">Dark</span>
+            </Icon>
+        ),
+    }
+
+    return (
+        <fetcher.Form method="post" {...form.props}>
+            <input type="hidden" name="theme" value={nextMode} />
+            <div className="flex gap-2">
+                <button
+                    name="intent"
+                    value="update-theme"
+                    type="submit"
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center"
+                >
+                    {modeLabel[mode]}
+                </button>
+            </div>
+            <ErrorList errors={form.errors} id={form.errorId} />
+        </fetcher.Form>
+    )
+}
+
+export const meta: MetaFunction = () => {
+    return [
+        { title: "Epic Notes" },
+        { name: "description", content: `Your own captain's log` },
+    ]
 }
 
 export function ErrorBoundary() {
