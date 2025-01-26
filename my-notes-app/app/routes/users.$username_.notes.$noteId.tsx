@@ -16,6 +16,7 @@ import {
 import { formatDistanceToNow } from "date-fns"
 import { AuthenticityTokenInput } from "remix-utils/csrf/react"
 import { z } from "zod"
+
 import { GeneralErrorBoundary } from "~/components/error-boundary"
 import { floatingToolbarClassName } from "~/components/floating-toolbar"
 import { ErrorList } from "~/components/forms"
@@ -30,6 +31,10 @@ import {
     useIsPending,
 } from "~/utils/misc"
 import { type loader as notesLoader } from "./users.$username_.notes"
+import {
+    redirectWithToast,
+    toastSessionStorage,
+} from "~/utils/toast.server"
 
 export async function loader({ params }: LoaderFunctionArgs) {
     const note = await prisma.note.findUnique({
@@ -93,7 +98,14 @@ export async function action({
 
     await prisma.note.delete({ where: { id: note.id } })
 
-    return redirect(`/users/${note.owner.username}/notes`)
+    throw await redirectWithToast(
+        `/users/${note.owner.username}/notes`,
+        {
+            type: "success",
+            title: "Success",
+            description: "Your note has been deleted.",
+        }
+    )
 }
 
 export default function NoteRoute() {

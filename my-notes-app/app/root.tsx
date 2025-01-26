@@ -23,7 +23,9 @@ import {
 } from "@remix-run/react"
 import { AuthenticityTokenProvider } from "remix-utils/csrf/react"
 import { HoneypotProvider } from "remix-utils/honeypot/react"
+import { Toaster, toast as showToast } from "sonner"
 import { z } from "zod"
+
 import faviconAssetUrl from "./assets/favicon.svg"
 import { GeneralErrorBoundary } from "./components/error-boundary"
 import { ErrorList } from "./components/forms"
@@ -36,8 +38,10 @@ import tailwindStylesheetUrl from "./styles/tailwind.css?url"
 import { csrf } from "./utils/csrf.server"
 import { getEnv } from "./utils/env.server"
 import { honeypot } from "./utils/honeypot.server"
-import { invariantResponse } from "./utils/misc"
+import { combineHeaders, invariantResponse } from "./utils/misc"
 import { getTheme, setTheme, type Theme } from "./utils/theme.server"
+import { toastSessionStorage } from "./utils/toast.server"
+import { useEffect } from "react"
 
 export const links: LinksFunction = () => {
     return [
@@ -65,18 +69,32 @@ export async function loader({ request }: LoaderFunctionArgs) {
         request
     )
     const honeyProps = honeypot.getInputProps()
+    const toastCookieSession = await toastSessionStorage.getSession(
+        request.headers.get("cookie")
+    )
+    const toast = toastCookieSession.get("toast")
+
     return data(
         {
             username: os.userInfo().username,
             theme: getTheme(request),
+            toast,
             ENV: getEnv(),
             csrfToken,
             honeyProps,
         },
         {
-            headers: csrfCookieHeader
-                ? { "set-cookie": csrfCookieHeader }
-                : {},
+            headers: combineHeaders(
+                csrfCookieHeader
+                    ? { "set-cookie": csrfCookieHeader }
+                    : {},
+                {
+                    "set-cookie":
+                        await toastSessionStorage.commitSession(
+                            toastCookieSession
+                        ),
+                }
+            ),
         }
     )
 }
@@ -137,6 +155,7 @@ function Document({
             </head>
             <body className="flex h-full flex-col justify-between bg-background text-foreground">
                 {children}
+                <Toaster closeButton position="top-center" />
                 <script
                     dangerouslySetInnerHTML={{
                         __html: `window.ENV = ${JSON.stringify(env)}`,
@@ -192,6 +211,7 @@ function App() {
                 </div>
             </div>
             <Spacer size="3xs" />
+            {data.toast ? <ShowToast toast={data.toast} /> : null}
         </Document>
     )
 }
@@ -263,6 +283,23 @@ function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
             <ErrorList errors={form.errors} id={form.errorId} />
         </fetcher.Form>
     )
+}
+
+function ShowToast({ toast }: { toast: any }) {
+    const { id, type, title, description } = toast as {
+        id: string
+        type: "success" | "message"
+        title: string
+        description: string
+    }
+    useEffect(() => {
+        setTimeout(
+            () => showToast[type](title, { id, description }),
+            0
+        )
+    }, [id, type, title, description])
+
+    return null
 }
 
 export const meta: MetaFunction = () => {

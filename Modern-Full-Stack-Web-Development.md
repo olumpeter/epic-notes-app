@@ -6928,13 +6928,226 @@ function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
 
 ## 4.2 Session Storage
 
+I'm going to be straight with you... The word "session" is devastatingly overloaded in the web. It can refer to the time period a user is on your site until they close their browser, or it can refer to a specific data structure that is used to store data about a user. It can also refer to the browser object called [`sessionStorage`](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage) which is client-only and we will not once use it in this workshop.
+
+I'll go ahead and apologize for the confusion ahead of time... Sorry.
+
+Phew, ok, let's move on...
+
+Storing user preferences in cookies is simple enough. If you check the developer tools for those, you'll often find the value as-is and can modify it using the developer tools (and sometimes even with JavaScript). For user preferences that's fine, but when it comes to authentication, we need to be more careful. Specifically, we need two things:
+
+1. We need to make it so client-side JavaScript can't access (or steal) the cookie value.
+2. We need to make it so the cookie value can't be modified by the user.
+
+For the first point, we can configure the cookie to make it inaccessible to client-side JavaScript. For the second point, we can't prevent user's from changing their cookies, but we can make it so we don't recognize the cookie if they do. We can use a cryptographic hash function to sign the cookie value. This way, if the user modifies the cookie value, the signature will no longer match and we'll know the cookie has been tampered with.
+
+Let's talk more about what you can do to configure cookies. Each cookie has a name, value, and a set of attributes. The attributes are optional and can be used to configure the cookie's behavior. The most common attributes are:
+
+-   `path`: The path on the server for which the cookie is valid. Defaults to the current path. This means if the path is set to `/my-page`, the cookie will only be sent to the server when the user is on the `/my-page` path.
+-   `domain`: The domain for which the cookie is valid. Defaults to the current domain. This means if the domain is set to `example.com`, the cookie will be sent to the server for all subdomains of `example.com`.
+-   `expires`: The date and time when the cookie expires. If not set, the cookie will expire when the browser is closed.
+-   `max-age`: The number of seconds until the cookie expires. If not set, the cookie will expire when the browser is closed.
+-   `secure`: If set, the cookie will only be sent to the server over HTTPS.
+-   `httpOnly`: If set, the cookie will not be accessible to JavaScript. This is useful for preventing cross-site scripting attacks.
+-   `sameSite`: If set, the cookie will only be sent to the server if the request originated from the same site. This is useful for preventing cross-site request forgery attacks.
+
+Several of these are great to enable for security purposes. However, there is nothing built-into the specification to prevent cookie tampering.
+
+This is why we are using the [cookie](https://www.npmjs.com/package/cookie) package which provides a `sign` function that will sign the cookie value using a cryptographic hash function. It also provides a verify function that will verify the signature. This way, if the user modifies the cookie value, the signature will no longer match and we'll know the cookie has been tampered with.
+
+#### In Remix
+
+Remix has built-in support for cookie configuration including securely signing and verifying cookies. For a low-level API, you can use [the `createCookie` utility](https://remix.run/docs/en/main/utils/cookies#createcookie) which includes several handy methods for working with cookies. For a higher-level session storage API, you can use one of [Remix's session storage utilities](https://remix.run/docs/en/main/utils/sessions).
+
+Each uses cookies to track the user's session, but they offer different ways to store "session" data. There are built-in utilities for storing the data in the cookie itself, in memory (not recommended for production), on the file system, or in a database. You can also create your own implementation if you want to store the data somewhere else.
+
+In practice, it's generally best to avoid storing too much data in the cookie itself as it will be sent to the server with every request. This can slow down the user's experience and can also cause problems if the cookie is too large.
+
+In my experience, most of the time the only persistent data stored in a session cookie is an ID that can be used to look up the rest of the data in a database. Sometimes temporary data is also stored in the cookie using a pattern called a ["Cookie Flash"](https://remix.run/docs/en/main/utils/sessions#sessionflashkey-value).
+
 ### 4.2.1 Cookie Session Storage
+
+👨‍💼 We're not talking about `window.sessionStorage` here. We're talking about storing information about the current session. For this feature, we want to be able to show the user a toast notification when they delete a note. And we'll want our solution to be generic enough to use for other notifications in the future.
+
+We could definitely use one of many React libraries to accomplish this, but we're going to go OG with the web and use cookies. The idea is in our `action` for the deletion, we'll set a cookie that has the message we want to show. And then the root loader will read that cookie and send the data along to the UI where we'll display the toast notification.
+
+🧝‍♂️ I've already implemented the UI bit for the toast notifications so you can focus on the session storage bit. Feel free to check out my work if you'd like to see what that involved.
+
+👨‍💼 Based on our requirements, we'll use Remix's [`createCookieSessionStorage`](https://remix.run/docs/en/main/utils/sessions#createcookiesessionstorage) API to create a session storage object that we can use to store and retrieve the `toast` information.
+
+🐨 Please Create `app/utils/toast.server.ts` to initialize this session storage object.
+
+🐨 Configure the cookie option with the following properties:
+
+-   `name`: `'en_toast'` - this is the name of the cookie that will be created and should be unique relative to other cookies on your domain ("en" is short for "Epic Notes").
+-   `sameSite`: `'lax'` - The cookie is sent with "safe" HTTP methods (like `GET`), and only when the request originates from the same site or when the user navigates to the URL from an external site, such as by following a link. This is a balance between security and usability, preventing the cookie from being sent with cross-site POST requests (which are often used in [cross-site request forgery attacks](https://owasp.org/www-community/attacks/csrf)), but still allowing the user to access content via regular navigation.
+-   `path`: `'/'` - The cookie is sent for all requests on the domain.
+-   `httpOnly`: `true` - The cookie is not accessible via JavaScript. This is important for security because it prevents cross-site scripting attacks from accessing the cookie.
+-   `secrets`: `process.env.SESSION_SECRET.split(',')` - This is an array of secrets that will be used to sign the cookie. This is important for security because it prevents the cookie from being tampered with. It's an array so you can rotate their values over time. We are using an environment variable for the secret. So you'll need to add that to the file. Once you have that set, you can update so you have type-safe access to that environment variable.
+-   `secure`: `process.env.NODE_ENV === 'production'` - The cookie is only sent over HTTPS. This is important for security because it prevents the cookie from being sent over an insecure connection. We only want to do this in production because while some browsers are fine ignoring this on localhost, Safari does not.
+
+With that, you can add this to export all the bits of the sessionStorage so we can use them throughout the app:
+
+```tsx
+export const toastSessionStorage = createCookieSessionStorage({
+    // ...
+})
+```
+
+There's no straightforward way to test that you've got this done correctly until the next step, so you may check the diff to make sure you got it right before moving on.
+
+-   [📜 Remix's `createCookieSessionStorage` API](https://remix.run/docs/en/main/utils/sessions#createcookiesessionstorage)
+
+#### Conclusion
+
+👨‍💼 Great! Now that we have our toast session storage utility configured, we can test it out by creating a new session and storing a toast message in it. Let's head over to the note route.
 
 ### 4.2.2 Session Set
 
+🦉 The `toastSessionStorage` object we've created has a few methods on it we'll need to use:
+
+```ts
+const cookie = request.headers.get("cookie")
+const cookieSession = await toastSessionStorage.getSession(cookie)
+```
+
+This will get the session data from the cookie. If no cookie is present, it will create a new session. In either case, that session has a few methods on it we're going to need for this bit:
+
+```ts
+cookieSession.set("key", "value")
+// objects are serialized automatically
+cookieSession.set("tasty", { candy: "twix" })
+```
+
+Once you've set those values in the session storage, you can create a serialized cookie value out of it using the `toastSessionStorage.commitSession` method:
+
+```tsx
+const setCookieHeader = await toastSessionStorage.commitSession(
+    cookieSession
+)
+
+return redirect("/some/url", {
+    headers: {
+        "set-cookie": setCookieHeader,
+    },
+})
+
+// this works the same way with `json` and `new Response` as well
+```
+
+Once that's been set in the cookie, you can access it again using the `toastSessionStorage.getSession` method:
+
+```ts
+const cookie = request.headers.get("cookie")
+const cookieSession = await toastSessionStorage.getSession(cookie)
+```
+
+And then you can use `cookieSession.get` to get the values:
+
+```ts
+const value = cookieSession.get("key")
+
+// and values are deserialized for you:
+const object = cookieSession.get("tasty")
+// { candy: 'twix' }
+```
+
+👨‍💼 Alright, so now let's go to and use these APIs to set a toast message.
+
+Once you're done with that, go to `app/routes/users.$username_.notes.$noteId.tsx` to read that value and pass it along to the UI to display it.
+
+Once you're finished with that you should be able to get a toast notification when you delete a note. Try one of Kody's.
+
+-   [📜 Remix Session API](https://remix.run/docs/en/main/utils/sessions#session-api)
+-   [📜 `session.set`](https://remix.run/docs/en/main/utils/sessions#sessionsetkey-value)
+-   [📜 `session.get`](https://remix.run/docs/en/main/utils/sessions#sessionget)
+
+#### Conclusion
+
+👨‍💼 Great work! But you may have noticed an issue. Once you display the toast once, it'll show up every time you refresh the page, or any time you do any other mutation! This is because once the toast gets into the session, it stays there until we remove it. Let's do that.
+
 ### 4.2.3 Session Unset
 
+👨‍💼 We need to get rid of the toast value once we read it in the `root.tsx`. Here's how the API works:
+
+```ts
+session.set("key", "value")
+session.get("key") // 'value'
+
+// then:
+session.unset("key")
+
+// then later:
+session.get("key") // undefined
+```
+
+So we just want to add `unset` to `app/root.tsx"`.
+
+But wait! We also need to make sure we commit the session. Any time you change the session, you need to make sure to let the client know otherwise it'll just keep sending you the old version of the cookie.
+
+-   📜 `session.unset`
+
+#### Conclusion
+
+👨‍💼 Great work! But there's one more thing we can do to make this better.
+
 ### 4.2.4 Session Flash Messages
+
+👨‍💼 Turns out the concept of creating a temporary session value is pretty common. So common in fact that there's a pattern and an API for handling this.
+
+The pattern is called the "flash" pattern. It's a temporary session value that is meant to be displayed to the user and then removed.
+
+Right now what we're doing can be represented like this:
+
+```
+set -> commit -> get -> unset -> commit
+```
+
+With the flash pattern it looks like this:
+
+```
+flash -> commit -> get -> commit
+```
+
+When you use `session.flash` it automatically `unset`s the value after the next `get` of that value.
+
+So what we can do is change our `set` call to `flash` and then we don't have to worry about calling `unset` anymore. So go ahead and make those updates and we'll be in a good spot.
+
+It's important to note that we do still need to commit the session because it is being changed. This isn't a web standard API or anything. This is just a common pattern that people use.
+
+#### Conclusion
+
+👨‍💼 Great work. Now we've got a pretty good pattern for handling toast notifications.
+
+🧝‍♂️ I found a bug! If you delete a second note, the toast notification doesn't show up. This is because we're not setting an `id` for the toast in which means the `useEffect` in `ShowToast` in won't re-run (because all the other values are the same... dependency arrays 😩).
+
+Because this isn't necessary for your learning of managing sessions, you can safely leave this as-is and I'll fix it, or you can fix it before moving on if you'd like. You could use the noteId as the `id` for the toast, or you could generate one with `@paralleldrive/cuid2` which is already installed (that's what I do).
+
+In any case, I'm going to refactor the code a bit to make utilities out of this we can use in other areas of the app in the future. In addition, I'm going to just destroy the toast cookie altogether after we've read its value to save on some bytes per request. If you're interested, you can review my changes.
+
+The APIs you'll be able to use in the future are:
+
+```ts
+throw await redirectWithToast(
+    "/somewhere",
+    {
+        title: "Toast Title",
+        description: "This is a toast description",
+        type: "success",
+    },
+    {
+        status: 201,
+        // other response init stuff you wanna do
+    }
+)
+
+// or, a lower-level API
+const headers = createToastHeaders({
+    title: "Toast Title",
+    description: "This is a toast description",
+})
+return json({ status: "success" }, { headers })
+```
 
 ## 4.3 User Session
 
