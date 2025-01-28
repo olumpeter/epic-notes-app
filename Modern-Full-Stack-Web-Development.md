@@ -7151,11 +7151,94 @@ return json({ status: "success" }, { headers })
 
 ## 4.3 User Session
 
+This exercise will build on the knowledge you developed from the previous exercise on Remix's session storage utilities for storing data in cookies. Again, there are other storage mechanisms available, and if you need to track a lot of data for the user, you may consider using one of those other mechanisms. In each of those cases, a cookie is still used to keep track of the user's session, but the data is stored in a database/filesystem/etc.
+
+For us, we're not going to be storing enough data in the session to warrant using a different storage mechanism. In the [future though](https://github.com/epicweb-dev/web-auth/blob/main/09), we will be creating a database table for managed sessions, but we'll get to that later.
+
+You'll be creating a separate cookie for this session storage with its own expiration characteristics and other configuration. We're going to call this `sessionStorage` and the value you get from calling `getSession()` will be `cookieSession` to differentiate it from the managed session we'll bring in later. You may also consider calling it `authSessionStorage` and `authSession` to be more explicit about what it's used for.
+
+In this exercise, you're going to be using that session storage to store the `userId` of the user who's currently logged in. Because it's cryptographically signed, the user won't be able to tamper with it, so we can trust it as an authentication mechanism. If the user is logged in, we'll be able to get their `userId` from the `cookieSession` and use it to load their user record from the database.
+
+The basic login flow is:
+
+1. Find user
+2. Verify password (coming soon)
+3. Set userId in `cookieSession`
+4. Get the userId from the `cookieSession`
+5. Load the user by their ID
+
 ### 4.3.1 Session Storage
+
+👨‍💼 Just like with the toast messages, we're going to want to use the [`createCookieSessionStorage` API](https://remix.run/docs/en/main/utils/sessions#createcookiesessionstorage) to create a session storage object that we can use to store and retrieve the `userId`.
+
+We'll make this a different one from the toast messages so that we can keep them separate. We'll call this one simply `sessionStorage`.
+
+🐨 Please Create `app/utils/session.server.ts` to initialize this session storage object.
+
+🐨 This session should have a very similar configuration to the toast messages session. The only difference is the `name` should be '`en_session`' to avoid clashing with the toast messages session.
+
+(If you need a reminder, check ).
+
+Make sure you export the sessionStorage object from this module.
+
+There's not a great way to test that you've got this done correctly until the next step, so you may check the diff to make sure you got it right before moving on.
+
+-   [📜 Remix's `createCookieSessionStorage` API](https://remix.run/docs/en/main/utils/sessions#createcookiesessionstorage)
+
+#### Conclusion
+
+👨‍💼 Great! Now that we have our session storage utility configured, we can test it out by creating a new session and storing some data in it. Let's start on the login screen where this will ultimately be used.
 
 ### 4.3.2 Set the userId
 
+👨‍💼 When the user logs in, we'll set their `userId` in the session. This will allow us to identify the user later on.
+
+🧝‍♂️ I already put together the login, signup, and forgot password routes. They aren't really functional yet, but we want you to focus your time on getting the session set up.
+
+👨‍💼 We also don't have passwords for our users quite yet, so we're going to hold off on actually verifying the password is correct as well. So, you'll just find the user in the database by their username, assume the password is correct, and set the `userId` in the session. We'll handle the password in the next exercise.
+
+🦉 We'll be using a feature in Zod called `transform` which will allow us to transform the form submission into a user object. This gives us a nice way to manage the lookup of the user as part of the validation process.
+
+Here are a couple snippets to help you with the session API:
+
+```ts
+// get the session from the request
+const session = await sessionStorage.getSession(
+    request.headers.get("cookie")
+)
+
+// set a value in the session
+session.set("someName", someValue)
+
+// get the 'set-cookie' header:
+const setCookieHeaderValue = await sessionStorage.commitSession(
+    session
+)
+```
+
+You'll know you have it working when you check the network response in the browser developer tools and it has a `set-cookie` header. You can also check the "Application" tab in the developer tools which will display the cookies for the app as well. You'll notice it looks kinda funny, but that's because it's signed.
+
+We'll use this cookie value in the next step.
+
+-   [📜 zod's `transform` API](https://zod.dev/?id=transform)
+-   [📜 zod: validating during transform](https://zod.dev/?id=validating-during-transform)
+-   [📜 Remix Sessions](https://remix.run/docs/en/main/utils/sessions)
+
+#### Conclusion
+
+👨‍💼 Great! Now our server can determine who the user is just by inspecting the request's cookie header. Let's do that next.
+
+🧝‍♂️ I'm going to do a little work in `app/root.tsx `to make a nicer UI for the user once they're logged in. You'll still need to wire it up in the next step, but if you'd like to see what I'm doing, check out the diff.
+
 ### 4.3.3 Load the User
+
+👨‍💼 We're almost there! Now you need to update the `app/root.tsx` so it reads the `userId` from the session storage and loads the user from the database. Then we can send the user along to the UI and display some user-specific information.
+
+The emoji will be there to help you through this one!
+
+#### Conclusion
+
+👨‍💼 Fabulous! Now we can securely set some user-specific information on a user's device and safely load that user's information back into our app. Well done.
 
 ## 4.4 Password Management
 

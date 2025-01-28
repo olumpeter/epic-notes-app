@@ -4,8 +4,8 @@ import { parse } from "@conform-to/zod"
 import { cssBundleHref } from "@remix-run/css-bundle"
 import {
     data,
-    type LoaderFunctionArgs,
     type ActionFunctionArgs,
+    type LoaderFunctionArgs,
     type LinksFunction,
 } from "@remix-run/node"
 import {
@@ -21,12 +21,12 @@ import {
     useMatches,
     type MetaFunction,
 } from "@remix-run/react"
+import { useEffect } from "react"
 import { AuthenticityTokenProvider } from "remix-utils/csrf/react"
 import { HoneypotProvider } from "remix-utils/honeypot/react"
 import { Toaster, toast as showToast } from "sonner"
 import { z } from "zod"
-
-import faviconAssetUrl from "./assets/favicon.svg"
+import faviconAssetUrl from "./assets/favicon.svg?url"
 import { GeneralErrorBoundary } from "./components/error-boundary"
 import { ErrorList } from "./components/forms"
 import { SearchBar } from "./components/search-bar"
@@ -36,32 +36,27 @@ import { Icon } from "./components/ui/icon"
 import fontStylesUrl from "./styles/font.css?url"
 import tailwindStylesheetUrl from "./styles/tailwind.css?url"
 import { csrf } from "./utils/csrf.server"
+import { prisma } from "./utils/db.server"
 import { getEnv } from "./utils/env.server"
 import { honeypot } from "./utils/honeypot.server"
-import { combineHeaders, invariantResponse } from "./utils/misc"
+import {
+    combineHeaders,
+    getUserImgSrc,
+    invariantResponse,
+} from "./utils/misc"
+import { sessionStorage } from "./utils/session.server"
 import { getTheme, setTheme, type Theme } from "./utils/theme.server"
-import { toastSessionStorage } from "./utils/toast.server"
-import { useEffect } from "react"
+import { getToast, type Toast } from "./utils/toast.server"
 
 export const links: LinksFunction = () => {
     return [
-        {
-            rel: "icon",
-            type: "image/svg+xml",
-            href: faviconAssetUrl,
-        },
-        {
-            rel: "stylesheet",
-            href: fontStylesUrl,
-        },
-        {
-            rel: "stylesheet",
-            href: tailwindStylesheetUrl,
-        },
+        { rel: "icon", type: "image/svg+xml", href: faviconAssetUrl },
+        { rel: "stylesheet", href: fontStylesUrl },
+        { rel: "stylesheet", href: tailwindStylesheetUrl },
         ...(cssBundleHref
             ? [{ rel: "stylesheet", href: cssBundleHref }]
             : []),
-    ]
+    ].filter(Boolean)
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -69,14 +64,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
         request
     )
     const honeyProps = honeypot.getInputProps()
-    const toastCookieSession = await toastSessionStorage.getSession(
+    const { toast, headers: toastHeaders } = await getToast(request)
+    const cookieSession = await sessionStorage.getSession(
         request.headers.get("cookie")
     )
-    const toast = toastCookieSession.get("toast")
+    const userId = cookieSession.get("userId")
+    const user = userId
+        ? await prisma.user.findUnique({
+              where: { id: userId },
+              select: {
+                  id: true,
+                  name: true,
+                  username: true,
+                  image: { select: { id: true } },
+              },
+          })
+        : null
 
     return data(
         {
             username: os.userInfo().username,
+            user,
             theme: getTheme(request),
             toast,
             ENV: getEnv(),
@@ -87,13 +95,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
             headers: combineHeaders(
                 csrfCookieHeader
                     ? { "set-cookie": csrfCookieHeader }
-                    : {},
-                {
-                    "set-cookie":
-                        await toastSessionStorage.commitSession(
-                            toastCookieSession
-                        ),
-                }
+                    : null,
+                toastHeaders
             ),
         }
     )
@@ -121,12 +124,11 @@ export async function action({ request }: ActionFunctionArgs) {
             status: 400,
         })
     }
-
     const { theme } = submission.value
+
     const responseInit = {
         headers: { "set-cookie": setTheme(theme) },
     }
-
     return data({ success: true, submission }, responseInit)
 }
 
@@ -155,12 +157,12 @@ function Document({
             </head>
             <body className="flex h-full flex-col justify-between bg-background text-foreground">
                 {children}
-                <Toaster closeButton position="top-center" />
                 <script
                     dangerouslySetInnerHTML={{
                         __html: `window.ENV = ${JSON.stringify(env)}`,
                     }}
                 />
+                <Toaster closeButton position="top-center" />
                 <ScrollRestoration />
                 <Scripts />
             </body>
@@ -171,9 +173,10 @@ function Document({
 function App() {
     const data = useLoaderData<typeof loader>()
     const theme = useTheme()
+    const user = data.user
     const matches = useMatches()
     const isOnSearchPage = matches.find(
-        (m) => m.id === "routes/users._index"
+        (m) => m.id === "routes/users+/index"
     )
     return (
         <Document theme={theme} env={data.ENV}>
@@ -189,9 +192,39 @@ function App() {
                         </div>
                     )}
                     <div className="flex items-center gap-10">
-                        <Button asChild variant="default" size="sm">
-                            <Link to="/login">Log In</Link>
-                        </Button>
+                        {user ? (
+                            <div className="flex items-center gap-2">
+                                <Button asChild variant="secondary">
+                                    <Link
+                                        to={`/users/${user.username}`}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <img
+                                            className="h-8 w-8 rounded-full object-cover"
+                                            alt={
+                                                user.name ??
+                                                user.username
+                                            }
+                                            src={getUserImgSrc(
+                                                user.image?.id
+                                            )}
+                                        />
+                                        <span className="hidden text-body-sm font-bold sm:block">
+                                            {user.name ??
+                                                user.username}
+                                        </span>
+                                    </Link>
+                                </Button>
+                            </div>
+                        ) : (
+                            <Button
+                                asChild
+                                variant="default"
+                                size="sm"
+                            >
+                                <Link to="/login">Log In</Link>
+                            </Button>
+                        )}
                     </div>
                 </nav>
             </header>
@@ -268,7 +301,7 @@ function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
     }
 
     return (
-        <fetcher.Form method="post" {...form.props}>
+        <fetcher.Form method="POST" {...form.props}>
             <input type="hidden" name="theme" value={nextMode} />
             <div className="flex gap-2">
                 <button
@@ -285,20 +318,13 @@ function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
     )
 }
 
-function ShowToast({ toast }: { toast: any }) {
-    const { id, type, title, description } = toast as {
-        id: string
-        type: "success" | "message"
-        title: string
-        description: string
-    }
+function ShowToast({ toast }: { toast: Toast }) {
+    const { id, type, title, description } = toast
     useEffect(() => {
-        setTimeout(
-            () => showToast[type](title, { id, description }),
-            0
-        )
-    }, [id, type, title, description])
-
+        setTimeout(() => {
+            showToast[type](title, { id, description })
+        }, 0)
+    }, [description, id, title, type])
     return null
 }
 

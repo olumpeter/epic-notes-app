@@ -3,5 +3,6 @@ Benfield
 EPICSHOP
 Geekery
 Kanem
+oslojs
 subpaths
 twix
