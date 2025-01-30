@@ -7242,11 +7242,125 @@ The emoji will be there to help you through this one!
 
 ## 4.4 Password Management
 
+There are a variety of ways to authenticate a user is who they say they are. The most common way is to use a password. Passwords are a secret string of characters that only the user (or [their password manager](https://1password.com/)) knows. When a user logs in, they provide their username and password. The server then checks the password to verify it's correct and from there can trust the user is who they are logging in as.
+
+A naive way to implement this would be to store the user's password as is. However, this opens you up to a variety of attacks. If an attacker gets access to your database, they can see all the passwords in plain text. If a user reuses their password on multiple sites, the attacker can now log in as the user on those sites as well.
+
+Another way to implement this would be to encrypt the password. This would prevent an attacker from seeing the password in plain text, but it would still be vulnerable to a [dictionary attack](https://en.wikipedia.org/wiki/Dictionary_attack) in the event an attacker got access to your database.
+
+Now, to be clear, it's not impossible for an adversary to gain access to your database, but we can reduce the attractiveness of this by making it impossible for the attacker to use the passwords even if they do get access to the database.
+
+#### Password Hashing
+
+Instead of storing the password or an encrypted version of the password, we can store a hash of the password. A hash is a one-way function that takes in a string and returns a fixed-length string. The same input will always return the same output, but it's impossible to go from the output to the input. This means that if an attacker gets access to your database, they can't use the hashes to log in as the user.
+
+So, to verify the password is correct, you simply hash the password the user provides and compare it to the hash stored in the database. If they match, the password is correct.
+
+#### Protecting against Brute Force Attacks
+
+A brute force attack is when an attacker tries every possible combination of characters until they find the correct password. This is not very efficient, but if an attacker is after a specific user's account, it doesn't have to be. Eventually they will find the correct password.
+
+To protect against this, password hashing algorithms have been designed to be slow. This means that it takes a relatively long time to hash a password. This is fine for a user logging in, but it makes it very difficult for an attacker to brute force a password.
+
+#### Protecting against Rainbow Table Attacks
+
+A Rainbow Table is a precomputed table of hashes and their inputs. This allows an attacker to simply look up the hash in the table to find the input. This means that if an attacker gets access to your database, they can simply look up the hashes to find the passwords.
+
+To protect against this, password hashing algorithms use a salt. A salt is a random string that is added to the password before hashing. This means that even if two users have the same password, their hashes will be different. This makes it impossible for an attacker to use a rainbow table to find the passwords.
+
+What's cool about this is you don't even need to securely store the salt. In fact a common practice is to simply append the salt to the hash. This will make it so that the salt is always available when you need to verify the password.
+
+## Putting it all together
+
+A good algorithm that checks these boxes is [bcrypt](https://en.wikipedia.org/wiki/Bcrypt) and a great library for generating bcrypt hashes is [bcryptjs](https://www.npmjs.com/package/bcryptjs).
+
+bcrypt hashes are slow and generate a random salt for you. This means that you don't need to worry about generating a salt and you can simply store the whole thing as is. Then when the user logs in, you provide the stored hash and the password they provide to bcryptjs's `compare` function will verify the password is
+correct.
+
 ### 4.4.1 Data Model for Passwords
+
+🦉 Modeling Passwords requires special consideration. A password hash is a single field, so it may make sense to simply include the `hash` on the `User` model. However, recall that the default behavior for a select statement (particularly in Prisma where you can leave off the `select`) is to return all fields. So if we were to include the `hash` on the `User` model, then every time we queried for a `User` we would get the `hash` back. An unfortunate oversight on the part of a developer could lead to leaking all password hashes in the UI.
+😱
+
+Instead, we will create a separate `Password` model that has a one-to-one relationship to the `User` model. This way, the default of query the `User` will not include the password hash (at worst, it will include the `id` of the password which is not a concern).
+
+Unfortunately, it's not possible to enforce a required value on both sides of a one-to-one relationship. So we can't enforce that a password is required on the `User` model at the database level. However, it's worth the tradeoff to avoid the risk of leaking passwords. (see this [issue](https://github.com/epicweb-dev/web-auth/issues/7#issue-1912551875) for more information).
+
+🐨 Add the model in `prisma/schema.prisma`, then run:
+
+```sh
+npx prisma migrate dev --name password
+```
+
+That should get you set up with a migration for adding the password to the
+database and ready for the next step.
+
+#### Conclusion
+
+👨‍💼 With a data model for the passwords, we're on our way to actually start creating password hashes. Let's get to that bit next.
 
 ### 4.4.2 Seeding Password Hashes
 
+👨‍💼 We're going to start with the seed script. Sadly, because the database can't enforce that every user has a password, Prisma won't let us know if we ever create a user without one either. It's possible we could create a [Prisma client extension](https://www.prisma.io/docs/concepts/components/prisma-client/client-extensions) to help with this, but for now we'll just deal with the fact that we're not getting type errors in our seed script even though we're not adding passwords to the users we're generating.
+
+To generate a hash, we'll use the `bcrypt` library. For our seed/test utils,
+we're ok just using the synchronous version (we'll use the async version in the
+app):
+
+```ts
+import bcrypt from "bcryptjs"
+
+bcrypt.hashSync(password, 10)
+```
+
+The `10` there is the number of rounds of hashing to do. The higher the number, the longer it takes to generate the hash, but the harder it is to crack. 10 is a reasonable number for our use case.
+
+The `10` there is the number of rounds of hashing to do. The higher the number, the longer it takes to generate the hash, but the harder it is to crack. 10 is a reasonable number for our use case.
+
+So follow the emoji's instructions in `tests/db-utils.ts` to make a utility for creating a password field, then update the `prisma/seed.ts` script to use that utility.
+
+🐨 once you're done with this, you can run the seed to get the passwords in there:
+
+```sh
+npx prisma db seed
+```
+
+If you'd like, you can check hashes in prisma studio:
+
+```sh
+npx prisma studio
+```
+
+The first 30 characters of the hash are the auto-generated salt, and the rest is the actual hash of the password.
+
+#### Conclusion
+
+👨‍💼 Great! We're now ready to add this to our signup flow so when a user signs up for an account they can also create a password.
+
+🧝‍♂️ To get things ready for you, I'm going to implement the session logic for the sign up so you can focus on the password bit. If you'd like to do it yourself though, go ahead. It'll be pretty similar to the login flow.
+
 ### 4.4.3 Sign Up
+
+🦉 Our Remix routes are used to create both a client-side and a server-side bundle. Remix is pretty good at splitting those things up for us, but using modules that really should only be used on the server can potentially cause issues.
+You can read all about [Server vs. Client Code Execution](https://remix.run/docs/en/main/discussion/server-vs-client) in the Remix docs if you like. We're going to take advantage of Remix's feature to explicitly label a module as server-only by creating a file with `.server` in the name.
+
+We don't want `bcryptjs` to appear in the client at all (it requires `crypto`
+anyway). 🐨 So please create `app/utils/auth.server.ts` and stick this in there:
+
+```tsx
+import bcrypt from "bcryptjs"
+
+export { bcrypt }
+```
+
+Then in the client build `auth.server.ts` will be an empty module so none of the
+`bcryptjs` code or `crypto` code will be included in the client bundle.
+
+👨‍💼 Great! Thanks Olivia! Now, let's create a password record when we create a new user so that can be used when the user logs in. Jump into `app/routes/_auth+/signup.tsx` and follow the emoji.
+
+#### Conclusion
+
+👨‍💼 That's great! Creating passwords is half the battle! We still need to verify that the password is correct on the login page, but I'll give you a break before we get started on that.
 
 ## 4.5 Login
 

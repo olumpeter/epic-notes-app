@@ -13,6 +13,7 @@ import { z } from "zod"
 import { CheckboxField, ErrorList, Field } from "~/components/forms"
 import { Spacer } from "~/components/spacer"
 import { StatusButton } from "~/components/ui/status-button"
+import { bcrypt } from "~/utils/auth.server"
 import { validateCSRF } from "~/utils/csrf.server"
 import { prisma } from "~/utils/db.server"
 import { checkHoneypot } from "~/utils/honeypot.server"
@@ -65,6 +66,23 @@ export async function action({ request }: ActionFunctionArgs) {
                 })
                 return
             }
+        }).transform(async (data) => {
+            const { username, email, name, password } = data
+            const user = await prisma.user.create({
+                select: { id: true },
+                data: {
+                    email: email.toLowerCase(),
+                    username: username.toLowerCase(),
+                    name,
+                    password: {
+                        create: {
+                            hash: await bcrypt.hash(password, 10),
+                        },
+                    },
+                },
+            })
+
+            return { ...data, user }
         }),
         async: true,
     })

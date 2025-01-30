@@ -2,7 +2,7 @@ import fs from "node:fs"
 import { faker } from "@faker-js/faker"
 import { PrismaClient } from "@prisma/client"
 import { promiseHash } from "remix-utils/promise"
-import { createUser } from "tests/db-utils"
+import { createPassword, createUser } from "tests/db-utils"
 
 const prisma = new PrismaClient()
 
@@ -92,6 +92,9 @@ async function seed() {
                 select: { id: true },
                 data: {
                     ...userData,
+                    password: {
+                        create: createPassword(userData.username),
+                    },
                     image: { create: userImages[index % 10] },
                     notes: {
                         create: Array.from({
@@ -185,6 +188,7 @@ async function seed() {
             username: "kody",
             name: "Kody",
             image: { create: kodyImages.kodyUser },
+            password: { create: createPassword("kodylovesyou") },
             notes: {
                 create: [
                     {
