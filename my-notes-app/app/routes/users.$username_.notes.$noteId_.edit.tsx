@@ -28,6 +28,7 @@ import { Icon } from "~/components/ui/icon"
 import { Label } from "~/components/ui/label"
 import { StatusButton } from "~/components/ui/status-button"
 import { Textarea } from "~/components/ui/textarea"
+import { requireUser } from "~/utils/auth.server"
 import { validateCSRF } from "~/utils/csrf.server"
 import { prisma } from "~/utils/db.server"
 import {
@@ -37,7 +38,18 @@ import {
     useIsPending,
 } from "~/utils/misc"
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({
+    params,
+    request,
+}: LoaderFunctionArgs) {
+    const user = await requireUser(request)
+    invariantResponse(
+        user.username === params.username,
+        "Not authorized",
+        {
+            status: 403,
+        }
+    )
     const { noteId } = params
     const note = await prisma.note.findFirst({
         where: { id: noteId },

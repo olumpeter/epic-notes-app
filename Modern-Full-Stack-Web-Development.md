@@ -7364,29 +7364,441 @@ Then in the client build `auth.server.ts` will be an empty module so none of the
 
 ## 4.5 Login
 
+We've already discussed verifying the user's password in the previous exercise, so there's not much to add at a fundamental level to the background of this exercise.
+
+We also already implemented loading the user's data once they have the proper session cookie.
+
+So this exercise is really just a matter of verifying the user's password before setting the session cookie and then creating some utilities to make accessing the user information in the UI easier.
+
+#### Verifying the password
+
+Because we're generating the hash and salt using `bcrypt`, we simply take the `hash` we stored and pass it to `bcrypt` along with the provided password to verify that the password is correct.
+
+```ts
+import bcrypt from "bcryptjs"
+
+const isValid = await bcrypt.compare(password, hash)
+```
+
+`bcrypt` will take care of splitting the hash into it's salt and hash parts and then hashing the provided password with the salt to see if it matches.
+
+## Remix Route Data
+
+One important thing to understand about the way Remix nested routes is that all the UI for child routes have access to the data returned by their parent routes as well. This means that the UI of the child routes should not need to get any user information from the server that's made available by the root route.
+
+You can access the data from parent routes using [the `useRouteLoaderData` hook](https://remix.run/docs/en/main/hooks/use-route-loader-data). For example:
+
+```tsx
+const { user } = useRouteLoaderData("root")
+```
+
+To make this type-safe, you can get the loader and pass it to the hook as a
+generic:
+
+```tsx
+const { user } = useRouteLoaderData<typeof rootLoader>("root")
+```
+
+## Optional Users
+
+Many applications have parts of the UI that are shown to only anonymous users
+(login, signup, etc), parts of the UI that are shown only to authenticated
+(settings, etc), and parts of the UI that are shown to both (home page, etc).
+
+So normally your `user` data can be the `User` object or `undefined`. But this
+can be annoying on pages where you know the user is logged in, because you have
+to check if the user is `undefined` before you can access the user's data.
+
+So, to combat this, you can create two hooks:
+
+-   `useOptionalUser` - returns the user if they're logged in, or `undefined` if
+    they're not (used for pages that are shown to both authenticated and
+    unauthenticated users).
+-   `useUser` - returns the user if they're logged in, or throws an error if
+    they're not (used for pages that are shown only to authenticated users).
+
+This way if the user data is unavailable, you can get a nice error message
+instead of "Cannot read property 'name' of undefined". And on top of that
+TypeScript will know that the user is not `undefined` when you use the
+`useUser` hook, so you don't have to do any extra checks.
+
+-   [📜 `useRouteLoaderData`](https://remix.run/docs/en/main/hooks/use-route-loader-data)
+-   [📜 `bcryptjs`](https://www.npmjs.com/package/bcryptjs)
+
 ### 4.5.1 Login
+
+👨‍💼 Let's verify the password now!
+
+```ts
+import { bcrypt } from "#app/utils/auth.server.ts"
+
+const isValid = await bcrypt.compare(password, hash)
+```
+
+Please add some logic to the `app/routes/_auth.login.tsx` file to verify the user's password. You'll need to get the user's hash, and take care to not return the hash to the browser.
+
+You can test this out by going to `/users`, choosing a random user, and trying to log in with their password (which is equal to their username). Or you can login as Kody:
+
+-   `username`: `kody`
+-   `password`: `kodylovesyou`
+
+Make sure to test out the error case as well!
+
+Since we haven't implemented logout yet, you may need to clear your cookies before you can test out the error case 😅
+
+-   [📜 `bcryptjs`](https://www.npmjs.com/package/bcryptjs)
+
+#### Conclusion
+
+👨‍💼 Stellar! Now we can really be sure the user is who they say they are when they log in. Next, let's add some utilities that will make it much easier to access the user's information throughout our UI from anywhere in the app.
+
+## Timing Attacks
+
+🦉 I want to take a moment to talk about timing attacks. We're currently vulnerable to these though it doesn't matter to us. A timing attack is essentially a way to figure out a secret by measuring how long it takes to perform an operation. In our case, we're vulnerable because we're using `bcrypt.compare` to compare the user's password to the hash in the database. But before we do that, we're checking to see if the user exists. If the user doesn't exist, we return early.
+
+So an adversary could determine if a user exists by measuring how long it takes to get a response from the server. If the user doesn't exist, the response will be faster than if the user does exist.
+
+In our application, the users are public knowledge so it doesn't matter if an adversary can figure out if a user exists or not. Additionally, we require the username to be unique so an adversary could simply sign up for an account to figure out if a user exists or not.
+
+But, imagine a scenario where an adversary is trying to determine if a user with a specific email has an account at a certain bank. That would probably be a bad thing, so it would be a good idea for that bank to hide the fact that a user exists or not. They could do this by always returning a response, even if the user doesn't exist and ensuring that response takes a random amount of time regardless of whether the user exists or not.
+
+## Kellie's work
+
+🧝‍♂️ I'm going to make a few changes for you to help you focus on your task, specifically, I'm going to:
+
+1. add a (non-functional) logout button to the user's page if they're looking at their own profile.
+1. Only display the note delete and edit buttons if the user is the owner of the note.
+1. Only display an "add note" link if the user's looking at their own notes.
+
+None of these will be wired up (that's your job), but they'll help you see what you're working towards. And it's important to note that just because we don't display the UI for something, it doesn't mean the user can't do that with sophisticated tools so we'll definitely want to add some logic on the backend too. We'll get to that later though.
 
 ### 4.5.2 UI Utils
 
+👨‍💼 The user's information is something we'll want to access throughout the app UI. So I want you to create a couple of handy utilities to help us do that.
+
+🐨 Start out by making the utilities in `app/utils/user.ts`, then go through the rest of the files (in the files menu below) to use the utilities you make.
+
+For this first bit, we don't have any authenticated-only pages yet, but we'll get there soon.
+
+As a reminder, you can get the root loader's data like so:
+
+```tsx
+const { user } = useRouteLoaderData<typeof rootLoader>("root")
+```
+
+To test out that this worked, sign in as a user (for example, username `kody` and password `kodylovesyou`) and check the affected routes. Then open (in another browser) those routes to check the unauthenticated experience.
+
+-   [📜 `useRouteLoaderData`](https://remix.run/docs/en/main/hooks/use-route-loader-data)
+
+#### Conclusion
+
+👨‍💼 Great! Now we have a nice utility for our UI to allow us to easily get the user in any component and render things based on their authentication state.
+
+Good work 👏
+
 ## 4.6 Logout and Expiration
+
+There are lots of different use cases for the user's session time. In some apps,
+the user wants to remain logged in basically forever, like a social media site.
+In other apps, the user wants to log out after a certain amount of time, and in
+some cases they may want to be logged out after a certain amount of inactivity
+(like a banking app).
+
+In this exercise, we're going to look at what it takes to implement a logout
+button and a session expiration.
+
+## Logout
+
+Logging out of a cookie-managed session is pretty easy. You simply need to
+remove the part of the cookie that identifies the user. You could delete the
+cookie altogether, or you could simply "unset" the user ID portion of the
+cookie:
+
+```tsx
+session.unset("userId")
+```
+
+Then you commit the session in the response and you're golden.
+
+<callout-warning>
+	It's important to note that you should almost never perform mutations within a
+	`GET` request, so rather than having a link to a `/logout` page which is too
+	common, you should have a button that performs a `POST` request to `/logout`.
+	This reduces the risk of [CSRF](https://owasp.org/www-community/attacks/csrf)
+	attacks.
+</callout-warning>
+
+## Expiration
+
+When a cookie expires, the browser will automatically delete it. So it won't show up in future requests. Almost like it was never created in the first place.
+
+By default, a cookie will expire when the session is over, which is when the browser is closed. However, you can set an expiration date on the cookie so that it will expire at a certain time. This is useful for things like "remember me" functionality, where you want the user to remain logged in for a long time.
+
+Many people misunderstand this feature because they check "remember me" and then they find they're logged out anyway after a certain amount of time. This is probably happening because even though the cookie is set to expire after a certain amount of time, they may not check the site again until after the expiration time anyway. All "remember me" is supposed to do is prevent the cookie from being automatically deleted when the browser is closed. Each app will have its own rules about how long a user can remain logged in after that point.
+
+The expiration time can be configured one of two ways:
+
+-   `expires` - A `Date` object representing the time the cookie should expire.
+-   `maxAge` - A number representing the number of seconds the cookie should
+    remain valid.
+
+Neither is better than the other. Use the one that feels more natural to you.
+
+#### Bad Auth State
+
+Another time to log the user out automatically is when the user's session is invalid. The primary reason for this is that the user's account may have been deleted. In this case, you'll want to send them to the login page so they can login with a different account or create a new one.
+
+#### Automatic Logout
+
+Automatic logout is a little more complicated. If you wish to do this without client-side JavaScript, it involves setting a cookie with every single request and checking that cookie on subsequent requests. If the cookie is not present, then you can log the user out. It's a jarring experience and in the modern age, not likely necessary.
+
+With client-side JavaScript, you simply create a timer and so long as the user is actively using the site, you reset the timer. If the timer expires, you log the user out. You can even provide them with a modal to notify them of the impending logout and give them the option to stay logged in.
+
+Depending on the application, this may not be necessary or desired, but for highly sensitive applications, it's a good idea.
 
 ### 4.6.1 Logout
 
+👨‍💼 We've got a logout button on the user profile page when the user's logged in and looking at their own profile (like if Kody goes to `/users/kody`. But right now it doesn't do anything. Let's make it post to the `/logout` route and make the `/logout` `action` clear the user's `userId` from the session.
+
+When the user wants to log out, we'll want to destroy their session. We can do this using the `destroySession` API from Remix:
+
+```tsx
+const setCookieHeader = await sessionStorage.destroySession(
+    cookieSession
+)
+```
+
+🦉 (psst, don't forget the "files" menu below).
+
+-   [📜 Remix Sessions API](https://remix.run/docs/en/main/utils/sessions)
+
+#### Conclusion
+
+👨‍💼 Phew, that's a relief. Before now I had to close the browser and open it again to logout 😅 What a pain. But now that I mention that, we should probably think about making it so the auth session lasts longer than the browser session.
+
+🧝‍♂️ I'm going to make a few changes to add a "remember me" checkbox to the login and sign up forms.
+
 ### 4.6.2 Expiration
+
+👨‍💼 For this app, we want the session to last 30 days, but only if the user checks "remember me." Otherwise, we want the session to last only until the user closes the browser.
+
+Because of this, we can't configure our session storage object to have an expiration (you can configure the [`createCookieSessionStorage`](https://remix.run/docs/en/main/utils/sessions#createcookiesessionstorage) session storage object to have an expiration). Instead, we need to set the expiration when we commit the session in the login and signup routes.
+
+🐨 To promote reusability, let's create a variable in `app/utils/auth.server.ts` called `SESSION_EXPIRATION_TIME` that's set to 30 days in milliseconds which is `1000 * 60 * 60 * 24 * 30`. You can then make a `getSessionExpirationDate` which returns a new date that is `Date.now() + SESSION_EXPIRATION_TIME`.
+
+Then we can use that in our login and signup routes to set the expiration time if the user has checked "remember me."
+
+```ts
+await sessionStorage.commitSession(cookieSession, {
+    // Cookies with no expiration are cleared when the tab/window closes
+    expires: remember ? getSessionExpirationDate() : undefined,
+})
+```
+
+Go ahead and make those updates please.
+
+#### Conclusion
+
+👨‍💼 Great! Now we have a "remember me" checkbox that actually works. We have some good control over our session expiration.
+
+But what if the user's logged in and then their account gets deleted? Who knows! We'd probably better handle that gracefully.
+
+🦉 Depending on your use case, another thing you may consider is adding a mechanism to refresh the user's session timeout time when they interact with the site. For example, if they click a button or navigate to a new page, you could refresh their session timeout time.
 
 ### 4.6.3 Deleted Users
 
+👨‍💼 In the root route of our app, we're loading the user based on the `userId` that's found in the session. But if no user is found then something weird is going on (most likely, the user account was deleted). So let's redirect the user to the home page and unset the `userId` in the session while we're at it.
+
+#### Conclusion
+
+👨‍💼 It feels nice to handle edge cases like that instead of leaving things to
+chance doesn't it? Great work!
+
+🧝‍♂️ I'm going to make a few changes in `root.tsx` to prepare things for an
+automatic logout feature.
+
 ### 4.6.4 Automatic Logout
+
+🦉 Our app is not really the kind of app users would want to be automatically logged out of, but we'll implement it anyway for the exercises.
+
+👨‍💼 When the user has been inactive for a while on the site, we want to log them out automatically so they don't leave their account open on a publicly accessible computer.
+
+Kellie 🧝‍♂️ built us a `LogoutTimer` component which sets up a timers and displays a modal when the user has been inactive for a while. We just need to find a good way to determine the user's activity. When they're active, we'll reset the timer.
+
+There are various ways you can determine activity. Depending on the type of app you have, you could track network requests, mouse movements, or keyboard activity. For our app, we'll track navigations.
+
+Whenever the user navigates with our router, the router creates a unique "key" which is accessible on the `location` object. We'll use this key to track activity:
+
+```tsx
+const location = useLocation()
+
+useEffect(() => {
+    console.log("location changed:", location.key)
+}, [location.key])
+```
+
+If the `key` changes, we can reset the timers.
+
+Another thing we'll want to consider is whether there is a user logged in at all. We wouldn't want the timers to start if there is no user logged in. So you'll need to address that situation as well.
+
+When the modal shows up, we'll let the user remain on the site by clicking a button which will close the modal and reset the timers. We'll also display a logout button which they can click if they just want to logout immediately.
+
+But the user might not be at their computer when the modal shows up. So we'll have to log them out programmatically. This is called an imperative mutation.,To make this kind of a mutation, you can use the `useSubmit` hook:
+
+```tsx
+const submit = useSubmit()
+```
+
+With this, you can submit a form programmatically:
+
+```tsx
+// submit a form:
+submit(someFormElement)
+
+// submit without a form:
+submit({ some: "data" }, { method: "POST", action: "/some/path" })
+
+// submit with no data:
+submit(null, { method: "POST", action: "/some/path" })
+```
+
+That should be enough to get you going on this exercise.
+
+🦉 I've hard coded some very short times for the timers so you don't have to wait for two hours to see the modal 😅
+
+-   [📜 `useLocation`](https://remix.run/docs/en/main/hooks/use-location)
+-   [📜 `useSubmit`](https://remix.run/docs/en/main/hooks/use-submit)
+
+#### Conclusion
+
+👨‍💼 Well, that was fun. Our app doesn't really need this so... Kellie? Can you get rid of this?
+
+🧝‍♂️ I'll take care of it 😈
+
+Actually, I've been thinking about the codebase a bit and I want to make a few more utilities and refactor some of the code. I'll take care of this while I'm at it.
+
+Also, now that we've got the ability for users to be logged in, I'm going to add some pages for user settings.
+
+I'm not changing functionality. Just moving some things around.
 
 ## 4.7 Protecting Routes
 
+Most web applications all have routes that you have to be authenticated to get to. And it confuses authenticated users if they can get to the login/signup routes. It's one thing to prevent this in the UI, but the real thing you're trying to protect users from is the data that powers those pages. So while it's nice for the user experience to prevent the user from naturally landing in a place where they shouldn't be, it's even more important that you prevent them from getting to the data through the data endpoints that you use to power those pages.
+
+The concept of protecting a route is pretty simple: Check the request, and if it's coming from a user who doesn't have a valid session, then redirect them to the login page.
+
+In Remix, every route `loader` and `action` is an endpoint that can be called directly, and so every private `loader` and `action` needs to have this protection.
+
+Often, a framework will allow you to protect an entire subset of routes in one place. However, Remix does not yet have a feature for this ([it will eventually](https://github.com/remix-run/react-router/discussions/9564)), so it can feel a little tedious to protect every route individually. That said, most of the time in a protected route you do need to get the user's session anyway, and Remix has a nice way to build that into your routes thanks to its ability to `throw` a `redirect` response. Which we'll take advantage of in this exercise.
+
+Personally, I like the explicitness (or maybe it's just Stockholm syndrome 😅), but if you want to protect a bunch of routes at once, you can do that by adding it into your express server. Additionally, you can load the user in your [app context](https://remix.run/docs/en/main/route/loader#context) so you don't have to talk to the database manually in each request you need it.
+
 ### 4.7.1 Require Anonymous
+
+👨‍💼 We don't want authenticated users to get confused if they ever land on the `/login` or `/signup` pages. So let's prevent that.
+
+I want you to make a reusable utility in `app/utils/auth.server.ts` that automatically redirects the user to the home page if they're already logged in.
+
+🧝‍♂️ earlier you had written code in the `root.tsx` to get the user's ID from the session. I created a handy utility in the `auth.server.ts` that does that for you, so you can use that with your utility.
+
+👨‍💼 Thanks Kellie. Once you've made the utility, then I need you to create `loader`s in both `app/routes/_auth+/login.tsx` and `app/routes/_auth+/signup.tsx` which use your utility to redirect the user to the home page if they're already logged in. You'll also want to include this in the `action`s for good measure.
+
+🦉 One note, we don't need any data for those routes. In that case, you do still
+need to return a `json` response, so you can do this:
+
+```tsx
+export async function loader({ request }: LoaderFunctionArgs) {
+    // use your utility here...
+    return json({}) // <-- just return an empty object
+}
+```
+
+🐨 So start in `app/utils/auth.server.ts` and then move on to the other files in the files dropdown below.
+
+#### Conclusion
+
+👨‍💼 Great! Now our users will be less confused. But the real improvement will be to make sure unauthenticated users can't do bad things like change other user's notes. Let's work on that next.
 
 ### 4.7.2 Require Authenticated
 
+👨‍💼 This will be really similar to the `requireAnonymous` utility you just made, except this one will do the opposite. It will be `requireUserId` and it should return the `userId` because we actually normally need that value.
+
+Then you'll need to apply it to the `loader` and `action` of all the routes that require a user to be logged in.
+
+In the case of `action`s, you'll likely need to get the `userId` and use that to perform the updates to the database. You'll find a few places we were using `params.username` to create/update/delete things. You'll need to change those to use the `userId` instead.
+
+🐨 So start in `app/utils/auth.server.ts` and then move on to the other files in the files dropdown below.
+
+#### Conclusion
+
+👨‍💼 Great! Now we don't have to worry about users landing on those pages unless they're authenticated and they can't update each other's notes. Our users will be thrilled.
+
 ### 4.7.3 Require Authorized
 
+👨‍💼 We've got a number of pages that users have no business being on. Like the edit page of someone else's note, for example, if you're not logged in, you should not be able to go to `/users/kody/notes/d27a197e/edit` or `users/kody/notes/new`.
+
+And you certainly shouldn't be able to _do_ anything on those pages as well. So in this exercise, you're going to make a new `requireUser` utility which you can then apply to those routes' `loaders` and `actions`.
+
+The emoji will be there to guide you! Have fun!
+
+#### Conclusion
+
+👨‍💼 Great! Now our authorized users won't be confused by ending up on a page they can't be on! We're going to take this even further when we get to the permissions exercise. We'll get to that later though.
+
+Now, we've got one more thing that will really improve the user's experience...
+
 ### 4.7.4 Redirect from Login
+
+👨‍💼 Imagine this scenario... You're a user and you receive an email from us inviting you to add your name in your profile settings. You click the link and are redirected to the login page. After logging in, you're redirected to the home page. You have now forgotten why you came here in the first place and move on with your day.
+
+Boo! That's not a great user experience. Let's fix it.
+
+There are a few ways to do this, but the most common is to use a query string parameter. We'll add `redirectTo` support to both our login and signup forms. That way, our `requireUserId` utility can take the `request.url` and create an appropriate `redirectTo` query param automatically when it redirects to the login page. Here's how it should work:
+
+```tsx filename=app/routes/kittens/new.tsx
+// Defaults to the current request.url.
+// This would redirect to `/login?redirectTo=%2Fkittens%2Fnew`
+await requireUserId(request)
+
+// Can override the default with a custom redirectTo.
+// This would redirect to `/login?redirectTo=%2Fkittens`
+await requireUserId(request, { redirectTo: "/kittens" })
+
+// Can disable the default with null.
+// This would redirect to `/login`
+await requireUserId(request, { redirectTo: null })
+```
+
+🧝‍♂️ Supporting `redirectTo` in `/login` and `/signup` is exactly the same, so I'll do the `/signup` route for you. Deal? Cool 👍
+
+We'll also want to update the link from our `/login` page to the `/signup` page so if the user needs to create an account instead, the `redirectTo` will carry over to that page too.
+
+🦉 Don't miss this point! `redirectTo` query params can be abused by attackers. A baddy could use a `redirectTo` query param to redirect a user to a malicious site after logging in. So you should always validate the `redirectTo` query param to make sure it's a valid URL on your site. It's sufficient to just make sure the URL doesn't start with `http` or `https` and that it starts with `/`.
+
+Luckily for us, there's a utility in [`remix-utils`: `safeRedirect`](https://github.com/sergiodxa/remix-utils#safe-redirects).
+Here's the example from their docs:
+
+```tsx
+export async function loader({ request }: LoaderArgs) {
+    let { searchParams } = new URL(request.url)
+    let redirectTo = searchParams.get("redirectTo")
+    return redirect(safeRedirect(redirectTo, "/home"))
+}
+```
+
+In our case, we don't need the `/home` fallback (it defaults to `/`).
+
+🧝‍♂️ There's not too much to the forms for this one, so I'm going to make you do this one on your own.
+
+I do recommend you add the `redirectTo` support to the `requireUserId` util in <InlineFile file="app/utils/auth.server.ts" /> first.
+
+-   [📜 `useSearchParams`](https://remix.run/docs/en/main/hooks/use-search-params)
+-   [📜 `safeRedirect`](https://github.com/sergiodxa/remix-utils#safe-redirects)
+
+#### Conclusion
+
+👨‍💼 That's definitely a better user experience. And it doesn't require any extra work on the part of regular developers using the `requireUserId` utility.
+Awesome work!
 
 ## 4.8 Role-Based Access
 

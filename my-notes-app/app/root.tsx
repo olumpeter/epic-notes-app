@@ -26,15 +26,16 @@ import { AuthenticityTokenProvider } from "remix-utils/csrf/react"
 import { HoneypotProvider } from "remix-utils/honeypot/react"
 import { Toaster, toast as showToast } from "sonner"
 import { z } from "zod"
-import faviconAssetUrl from "./assets/favicon.svg?url"
+import faviconAssetUrl from "./assets/favicon.svg"
 import { GeneralErrorBoundary } from "./components/error-boundary"
 import { ErrorList } from "./components/forms"
 import { SearchBar } from "./components/search-bar"
 import { Spacer } from "./components/spacer"
 import { Button } from "./components/ui/button"
 import { Icon } from "./components/ui/icon"
-import fontStylesUrl from "./styles/font.css?url"
+import fontStylesheetUrl from "./styles/font.css?url"
 import tailwindStylesheetUrl from "./styles/tailwind.css?url"
+import { getUserId } from "./utils/auth.server"
 import { csrf } from "./utils/csrf.server"
 import { prisma } from "./utils/db.server"
 import { getEnv } from "./utils/env.server"
@@ -44,14 +45,14 @@ import {
     getUserImgSrc,
     invariantResponse,
 } from "./utils/misc"
-import { sessionStorage } from "./utils/session.server"
 import { getTheme, setTheme, type Theme } from "./utils/theme.server"
 import { getToast, type Toast } from "./utils/toast.server"
+import { useOptionalUser } from "./utils/user"
 
 export const links: LinksFunction = () => {
     return [
         { rel: "icon", type: "image/svg+xml", href: faviconAssetUrl },
-        { rel: "stylesheet", href: fontStylesUrl },
+        { rel: "stylesheet", href: fontStylesheetUrl },
         { rel: "stylesheet", href: tailwindStylesheetUrl },
         ...(cssBundleHref
             ? [{ rel: "stylesheet", href: cssBundleHref }]
@@ -65,22 +66,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
     )
     const honeyProps = honeypot.getInputProps()
     const { toast, headers: toastHeaders } = await getToast(request)
-    const cookieSession = await sessionStorage.getSession(
-        request.headers.get("cookie")
-    )
-    const userId = cookieSession.get("userId")
+    const userId = await getUserId(request)
     const user = userId
-        ? await prisma.user.findUnique({
-              where: { id: userId },
+        ? await prisma.user.findUniqueOrThrow({
               select: {
                   id: true,
                   name: true,
                   username: true,
                   image: { select: { id: true } },
               },
+              where: { id: userId },
           })
         : null
-
     return data(
         {
             username: os.userInfo().username,
@@ -173,7 +170,7 @@ function Document({
 function App() {
     const data = useLoaderData<typeof loader>()
     const theme = useTheme()
-    const user = data.user
+    const user = useOptionalUser()
     const matches = useMatches()
     const isOnSearchPage = matches.find(
         (m) => m.id === "routes/users+/index"

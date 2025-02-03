@@ -29,9 +29,15 @@ import { Icon } from "~/components/ui/icon"
 import { Label } from "~/components/ui/label"
 import { StatusButton } from "~/components/ui/status-button"
 import { Textarea } from "~/components/ui/textarea"
+import { requireUser } from "~/utils/auth.server"
 import { validateCSRF } from "~/utils/csrf.server"
 import { prisma } from "~/utils/db.server"
-import { cn, getNoteImgSrc, useIsPending } from "~/utils/misc"
+import {
+    cn,
+    getNoteImgSrc,
+    invariantResponse,
+    useIsPending,
+} from "~/utils/misc"
 
 const titleMinLength = 1
 const titleMaxLength = 100
@@ -78,6 +84,14 @@ export async function action({
     request,
     params,
 }: ActionFunctionArgs) {
+    const user = await requireUser(request)
+    invariantResponse(
+        user.username === params.username,
+        "Not authorized",
+        {
+            status: 403,
+        }
+    )
     const formData = await parseMultipartFormData(
         request,
         createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE })
@@ -150,7 +164,7 @@ export async function action({
         select: { id: true, owner: { select: { username: true } } },
         where: { id: noteId ?? "__new_note__" },
         create: {
-            owner: { connect: { username: params.username } },
+            owner: { connect: { username: user.id } },
             title,
             content,
             images: { create: newImages },

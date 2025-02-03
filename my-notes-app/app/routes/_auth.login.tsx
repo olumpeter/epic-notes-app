@@ -2,20 +2,31 @@ import { conform, useForm } from "@conform-to/react"
 import { getFieldsetConstraint, parse } from "@conform-to/zod"
 import {
     data,
+    LoaderFunctionArgs,
     redirect,
     type ActionFunctionArgs,
     type MetaFunction,
 } from "@remix-run/node"
-import { Form, Link, useActionData } from "@remix-run/react"
+import {
+    Form,
+    Link,
+    useActionData,
+    useSearchParams,
+} from "@remix-run/react"
 import { AuthenticityTokenInput } from "remix-utils/csrf/react"
 import { HoneypotInputs } from "remix-utils/honeypot/react"
 import { z } from "zod"
 import { GeneralErrorBoundary } from "~/components/error-boundary"
-import { ErrorList, Field } from "~/components/forms"
+import { CheckboxField, ErrorList, Field } from "~/components/forms"
 import { Spacer } from "~/components/spacer"
 import { StatusButton } from "~/components/ui/status-button"
+import {
+    getSessionExpirationDate,
+    login,
+    requireAnonymous,
+    userIdKey,
+} from "~/utils/auth.server"
 import { validateCSRF } from "~/utils/csrf.server"
-import { prisma } from "~/utils/db.server"
 import { checkHoneypot } from "~/utils/honeypot.server"
 import { useIsPending } from "~/utils/misc"
 import { sessionStorage } from "~/utils/session.server"
@@ -27,9 +38,17 @@ import {
 const LoginFormSchema = z.object({
     username: UsernameSchema,
     password: PasswordSchema,
+    redirectTo: z.string().optional(),
+    remember: z.boolean().optional(),
 })
 
+export async function loader({ request }: LoaderFunctionArgs) {
+    await requireAnonymous(request)
+    return {}
+}
+
 export async function action({ request }: ActionFunctionArgs) {
+    await requireAnonymous(request)
     const formData = await request.formData()
     await validateCSRF(formData, request.headers)
     checkHoneypot(formData)
@@ -39,10 +58,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 if (intent !== "submit")
                     return { ...data, user: null }
 
-                const user = await prisma.user.findUnique({
-                    select: { id: true },
-                    where: { username: data.username },
-                })
+                const user = await login(data)
                 if (!user) {
                     ctx.addIssue({
                         code: "custom",
@@ -50,7 +66,7 @@ export async function action({ request }: ActionFunctionArgs) {
                     })
                     return z.NEVER
                 }
-                // verify the password (we'll do this later)
+
                 return { ...data, user }
             }),
         async: true,
@@ -69,17 +85,22 @@ export async function action({ request }: ActionFunctionArgs) {
         })
     }
 
-    const { user } = submission.value
+    const { user, remember, redirectTo } = submission.value
 
     const cookieSession = await sessionStorage.getSession(
         request.headers.get("cookie")
     )
-    cookieSession.set("userId", user.id)
+    cookieSession.set(userIdKey, user.id)
 
     return redirect("/", {
         headers: {
             "set-cookie": await sessionStorage.commitSession(
-                cookieSession
+                cookieSession,
+                {
+                    expires: remember
+                        ? getSessionExpirationDate()
+                        : undefined,
+                }
             ),
         },
     })
@@ -88,10 +109,13 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function LoginPage() {
     const actionData = useActionData<typeof action>()
     const isPending = useIsPending()
+    const [searchParams] = useSearchParams()
+    const redirectTo = searchParams.get("redirectTo")
 
     const [form, fields] = useForm({
         id: "login-form",
         constraint: getFieldsetConstraint(LoginFormSchema),
+        defaultValue: { redirectTo },
         lastSubmission: actionData?.submission,
         onValidate({ formData }) {
             return parse(formData, { schema: LoginFormSchema })
@@ -137,7 +161,19 @@ export default function LoginPage() {
                             />
 
                             <div className="flex justify-between">
-                                <div />
+                                <CheckboxField
+                                    labelProps={{
+                                        htmlFor: fields.remember.id,
+                                        children: "Remember me",
+                                    }}
+                                    buttonProps={conform.input(
+                                        fields.remember,
+                                        {
+                                            type: "checkbox",
+                                        }
+                                    )}
+                                    errors={fields.remember.errors}
+                                />
                                 <div>
                                     <Link
                                         to="/forgot-password"
@@ -147,6 +183,12 @@ export default function LoginPage() {
                                     </Link>
                                 </div>
                             </div>
+
+                            <input
+                                {...conform.input(fields.redirectTo, {
+                                    type: "hidden",
+                                })}
+                            />
 
                             <ErrorList
                                 errors={form.errors}
@@ -173,7 +215,15 @@ export default function LoginPage() {
                             <span className="text-muted-foreground">
                                 New here?
                             </span>
-                            <Link to="/signup">
+                            <Link
+                                to={
+                                    redirectTo
+                                        ? `/signup?redirectTo=${encodeURIComponent(
+                                              redirectTo
+                                          )}`
+                                        : "/signup"
+                                }
+                            >
                                 Create an account
                             </Link>
                         </div>

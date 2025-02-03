@@ -1,21 +1,26 @@
 import { type LoaderFunctionArgs } from "@remix-run/node"
 import {
+    Form,
     Link,
     useLoaderData,
     type MetaFunction,
 } from "@remix-run/react"
+import { AuthenticityTokenInput } from "remix-utils/csrf/react"
+
 import { GeneralErrorBoundary } from "~/components/error-boundary"
 import { Spacer } from "~/components/spacer"
 import { Button } from "~/components/ui/button"
+import { Icon } from "~/components/ui/icon"
 import { prisma } from "~/utils/db.server"
 import { getUserImgSrc, invariantResponse } from "~/utils/misc"
+import { useOptionalUser } from "~/utils/user"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
         select: {
-            email: true,
-            username: true,
+            id: true,
             name: true,
+            username: true,
             createdAt: true,
             image: { select: { id: true } },
         },
@@ -27,13 +32,8 @@ export async function loader({ params }: LoaderFunctionArgs) {
     invariantResponse(user, "User not found", { status: 404 })
 
     return {
-        user: {
-            name: user.name,
-            username: user.username,
-            email: user.email,
-            image: user.image,
-            userJoinedDisplay: user.createdAt.toLocaleDateString(),
-        } as const,
+        user,
+        userJoinedDisplay: user.createdAt.toLocaleDateString(),
     }
 }
 
@@ -41,6 +41,8 @@ export default function ProfileRoute() {
     const data = useLoaderData<typeof loader>()
     const user = data.user
     const userDisplayName = user.name ?? user.username
+    const loggedInUser = useOptionalUser()
+    const isLoggedInUser = data.user.id === loggedInUser?.id
 
     return (
         <div className="container mb-48 mt-36 flex flex-col items-center justify-center">
@@ -70,8 +72,29 @@ export default function ProfileRoute() {
                         </h1>
                     </div>
                     <p className="mt-2 text-center text-muted-foreground">
-                        Joined {user.userJoinedDisplay}
+                        Joined {data.userJoinedDisplay}
                     </p>
+                    {isLoggedInUser ? (
+                        <Form
+                            method="post"
+                            action="/logout"
+                            className="mt-3"
+                        >
+                            <AuthenticityTokenInput />
+                            <Button
+                                type="submit"
+                                variant="link"
+                                size="pill"
+                            >
+                                <Icon
+                                    name="exit"
+                                    className="scale-125 max-md:scale-150"
+                                >
+                                    Logout
+                                </Icon>
+                            </Button>
+                        </Form>
+                    ) : null}
                     <div className="mt-10 flex gap-4">
                         <Button asChild>
                             <Link to="notes" prefetch="intent">

@@ -9,6 +9,7 @@ import { GeneralErrorBoundary } from "~/components/error-boundary"
 import { Icon } from "~/components/ui/icon"
 import { prisma } from "~/utils/db.server"
 import { cn, getUserImgSrc, invariantResponse } from "~/utils/misc"
+import { useOptionalUser } from "~/utils/user"
 
 export async function loader({ params }: LoaderFunctionArgs) {
     const owner = await prisma.user.findFirst({
@@ -29,10 +30,11 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
 export default function NotesRoute() {
     const data = useLoaderData<typeof loader>()
+    const user = useOptionalUser()
+    const isOwner = data.owner.id === user?.id
     const ownerDisplayName = data.owner.name ?? data.owner.username
     const navLinkDefaultClassName =
         "line-clamp-2 block rounded-l-full py-2 pl-8 pr-6 text-base lg:text-xl"
-
     return (
         <main className="container flex h-full min-h-[400px] px-0 pb-12 md:px-8">
             <div className="grid w-full grid-cols-5 bg-muted pl-2 md:container sm:grid-cols-4 md:mx-2 md:rounded-3xl md:pr-0">
@@ -54,19 +56,24 @@ export default function NotesRoute() {
                             </h1>
                         </Link>
                         <ul className="overflow-y-auto overflow-x-hidden pb-12">
-                            <li className="p-1 pr-0">
-                                <NavLink
-                                    to="new"
-                                    className={({ isActive }) =>
-                                        cn(
-                                            navLinkDefaultClassName,
-                                            isActive && "bg-accent"
-                                        )
-                                    }
-                                >
-                                    <Icon name="plus">New Note</Icon>
-                                </NavLink>
-                            </li>
+                            {isOwner ? (
+                                <li className="p-1 pr-0">
+                                    <NavLink
+                                        to="new"
+                                        className={({ isActive }) =>
+                                            cn(
+                                                navLinkDefaultClassName,
+                                                isActive &&
+                                                    "bg-accent"
+                                            )
+                                        }
+                                    >
+                                        <Icon name="plus">
+                                            New Note
+                                        </Icon>
+                                    </NavLink>
+                                </li>
+                            ) : null}
                             {data.owner.notes.map((note) => (
                                 <li
                                     key={note.id}

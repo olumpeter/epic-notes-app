@@ -2,22 +2,35 @@ import { conform, useForm } from "@conform-to/react"
 import { getFieldsetConstraint, parse } from "@conform-to/zod"
 import {
     data,
+    LoaderFunctionArgs,
     redirect,
     type ActionFunctionArgs,
     type MetaFunction,
 } from "@remix-run/node"
-import { Form, useActionData } from "@remix-run/react"
+import {
+    Form,
+    useActionData,
+    useSearchParams,
+} from "@remix-run/react"
 import { AuthenticityTokenInput } from "remix-utils/csrf/react"
 import { HoneypotInputs } from "remix-utils/honeypot/react"
+import { safeRedirect } from "remix-utils/safe-redirect"
 import { z } from "zod"
+
 import { CheckboxField, ErrorList, Field } from "~/components/forms"
 import { Spacer } from "~/components/spacer"
 import { StatusButton } from "~/components/ui/status-button"
-import { bcrypt } from "~/utils/auth.server"
+import {
+    getSessionExpirationDate,
+    requireAnonymous,
+    signup,
+    userIdKey,
+} from "~/utils/auth.server"
 import { validateCSRF } from "~/utils/csrf.server"
 import { prisma } from "~/utils/db.server"
 import { checkHoneypot } from "~/utils/honeypot.server"
 import { useIsPending } from "~/utils/misc"
+import { sessionStorage } from "~/utils/session.server"
 import {
     EmailSchema,
     NameSchema,
@@ -36,6 +49,8 @@ const SignupFormSchema = z
             required_error:
                 "You must agree to the terms of service and privacy policy",
         }),
+        remember: z.boolean().optional(),
+        redirectTo: z.string().optional(),
     })
     .superRefine(({ confirmPassword, password }, ctx) => {
         if (confirmPassword !== password) {
@@ -47,7 +62,13 @@ const SignupFormSchema = z
         }
     })
 
+export async function loader({ request }: LoaderFunctionArgs) {
+    await requireAnonymous(request)
+    return {}
+}
+
 export async function action({ request }: ActionFunctionArgs) {
+    await requireAnonymous(request)
     const formData = await request.formData()
     await validateCSRF(formData, request.headers)
     checkHoneypot(formData)
@@ -67,21 +88,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 return
             }
         }).transform(async (data) => {
-            const { username, email, name, password } = data
-            const user = await prisma.user.create({
-                select: { id: true },
-                data: {
-                    email: email.toLowerCase(),
-                    username: username.toLowerCase(),
-                    name,
-                    password: {
-                        create: {
-                            hash: await bcrypt.hash(password, 10),
-                        },
-                    },
-                },
-            })
-
+            const user = await signup(data)
             return { ...data, user }
         }),
         async: true,
@@ -90,13 +97,31 @@ export async function action({ request }: ActionFunctionArgs) {
     if (submission.intent !== "submit") {
         return { status: "idle", submission } as const
     }
-    if (!submission.value) {
+    if (!submission.value?.user) {
         return data({ status: "error", submission } as const, {
             status: 400,
         })
     }
 
-    return redirect("/")
+    const { user, remember, redirectTo } = submission.value
+
+    const cookieSession = await sessionStorage.getSession(
+        request.headers.get("cookie")
+    )
+    cookieSession.set(userIdKey, user.id)
+
+    return redirect(safeRedirect(redirectTo), {
+        headers: {
+            "set-cookie": await sessionStorage.commitSession(
+                cookieSession,
+                {
+                    expires: remember
+                        ? getSessionExpirationDate()
+                        : undefined,
+                }
+            ),
+        },
+    })
 }
 
 export const meta: MetaFunction = () => {
@@ -107,9 +132,13 @@ export default function SignupRoute() {
     const actionData = useActionData<typeof action>()
     const isPending = useIsPending()
 
+    const [searchParams] = useSearchParams()
+    const redirectTo = searchParams.get("redirectTo")
+
     const [form, fields] = useForm({
         id: "signup-form",
         constraint: getFieldsetConstraint(SignupFormSchema),
+        defaultValue: { redirectTo },
         lastSubmission: actionData?.submission,
         onValidate({ formData }) {
             return parse(formData, { schema: SignupFormSchema })
@@ -217,7 +246,22 @@ export default function SignupRoute() {
                                 .errors
                         }
                     />
+                    <CheckboxField
+                        labelProps={{
+                            htmlFor: fields.remember.id,
+                            children: "Remember me",
+                        }}
+                        buttonProps={conform.input(fields.remember, {
+                            type: "checkbox",
+                        })}
+                        errors={fields.remember.errors}
+                    />
 
+                    <input
+                        {...conform.input(fields.redirectTo, {
+                            type: "hidden",
+                        })}
+                    />
                     <ErrorList
                         errors={form.errors}
                         id={form.errorId}
